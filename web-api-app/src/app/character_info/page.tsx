@@ -18,7 +18,7 @@ export default function CharacterInfoPage() {
     const [characterName, setCharacterName] = useState('');
     const [data, setData] = useState<CharacterData[] | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<Error | null>(null);
 
     const fetchData = async () => {
         if (!characterName) return;
@@ -50,7 +50,7 @@ export default function CharacterInfoPage() {
                 setData(result);
             }
         } catch (e: unknown) {
-            setError(e);
+            setError(e instanceof Error ? e : new Error(String(e)));
         } finally {
             setLoading(false);
         }
