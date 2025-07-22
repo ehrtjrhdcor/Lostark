@@ -10,10 +10,10 @@ export default function Sidebar() {
     >
       <div className="sidebar-sticky"></div>
       <Nav.Item>
-        <Nav.Link href="/character_info">Character Info</Nav.Link>
+        <Nav.Link href="/main">Home</Nav.Link>
       </Nav.Item>
       <Nav.Item>
-        <Nav.Link eventKey="link-1">Link</Nav.Link>
+        <Nav.Link href="/character_info">Character Info</Nav.Link>
       </Nav.Item>
       <Nav.Item>
         <Nav.Link eventKey="link-2">Link</Nav.Link>

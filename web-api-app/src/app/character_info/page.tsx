@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { API_BASE_URL, API_AUTH_TOKEN } from '../../config/api';
 import Layout from '../../components/Layout';
 
 export default function CharacterInfoPage() {
@@ -17,16 +18,27 @@ export default function CharacterInfoPage() {
         setData(null);
 
         try {
-            const response = await fetch(`https://developer-lostark.game.onstove.com/characters/${characterName}/siblings`, {
+            const response = await fetch(`${API_BASE_URL}/characters/${characterName}/siblings`, {
                 headers: {
-                    'Authorization': 'bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyIsImtpZCI6IktYMk40TkRDSTJ5NTA5NWpjTWk5TllqY2lyZyJ9.eyJpc3MiOiJodHRwczovL2x1ZHkuZ2FtZS5vbnN0b3ZlLmNvbSIsImF1ZCI6Imh0dHBzOi8vbHVkeS5nYW1lLm9uc3RvdmUuY29tL3Jlc291cmNlcyIsImNsaWVudF9pZCI6IjEwMDAwMDAwMDAwMDExNTIifQ.PUF70zE_m-9vTT_vRQ0TTuDWsulxRss9ZrW8wSUnGsds65C6NgD-qCmSv45XAuoU0NyJXjmttsbDEf-_-Y8x7im7ycVeooqXJLJXIdZ8ukkJZtm_-0S-WodhcVV7UYj9dvXdTWLyYWmY-y4q2HIIouE6ohPFtcESariEztQ3muVqF2i0FLFfiPN6KEnbJqVr6XO4XMY1HOQszKATOG0Npb0v0JItBdEwYrudbkxQwF5fd3tct6_v56m_eMo8HkRjka0BeKTShDR7q0MKSd1GXBnrJ9JXOhKMC9kqGqD08YEkR2Nrr2jWsF7E3mHhxUSNZYppcN6G87wj6UnEs5ySpw'
+                    'Authorization': API_AUTH_TOKEN
                 }
             });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const result = await response.json();
-            setData(result);
+            console.log('API Response:', result);
+
+            if (result && Array.isArray(result)) {
+                const sortedData = [...result].sort((a, b) => {
+                    const levelA = parseFloat(a.ItemAvgLevel.replace(/,/g, ''));
+                    const levelB = parseFloat(b.ItemAvgLevel.replace(/,/g, ''));
+                    return levelB - levelA; // 역순 정렬
+                });
+                setData(sortedData);
+            } else {
+                setData(result);
+            }
         } catch (e: any) {
             setError(e);
         } finally {
@@ -37,7 +49,8 @@ export default function CharacterInfoPage() {
     return (
         <Layout>
             <h1>Character Info</h1>
-            <div className="mb-3 d-flex">
+            <div>
+                <div className="mb-3 d-flex">
                 <input
                     type="text"
                     className="form-control me-2"
@@ -52,14 +65,39 @@ export default function CharacterInfoPage() {
                 />
                 <button className="btn btn-primary" onClick={fetchData}>Search</button>
             </div>
+            </div>
 
             {loading && <p>Loading character data...</p>}
             {error && <p>Error: {error.message}</p>}
-            {data && (
+            {data && Array.isArray(data) && data.length > 0 ? (
                 <>
-                    <h2>API Data:</h2>
-                    <pre>{JSON.stringify(data, null, 2)}</pre>
+                    <h2>Character List:</h2>
+                    <div className="row">
+                        {data.map((character: any, index: number) => (
+                            <div key={index} className="col-md-6 mb-3">
+                                <div className="card shadow-sm rounded">
+                                    <div className="card-body">
+                                        <div className="row">
+                                            <div className="col-8">
+                                                <h5 className="card-title">{character.CharacterName}</h5>
+                                                <p className="card-text mb-1"><strong>Server:</strong> {character.ServerName}</p>
+                                                <p className="card-text mb-1"><strong>Level:</strong> {character.CharacterLevel}</p>
+                                                <p className="card-text mb-1"><strong>Class:</strong> {character.CharacterClassName}</p>
+                                                <p className="card-text mb-0"><strong>Item Avg Level:</strong> {character.ItemAvgLevel}</p>
+                                            </div>
+                                            <div className="col-4 d-flex align-items-center justify-content-center">
+                                                {/* Placeholder for image */}
+                                                <img src="https://via.placeholder.com/100" alt="Character Image" className="img-fluid rounded" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </>
+            ) : (
+                data && <p>Character not found.</p>
             )}
         </Layout>
     );
