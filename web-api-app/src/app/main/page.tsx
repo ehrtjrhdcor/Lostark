@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { API_BASE_URL, API_AUTH_TOKEN } from '../../config/api';
 import Layout from '../../components/Layout';
 
 export default function MainPage() {
-	const names = ["다시시작하는창술사", "내가왜가", "소라민", "윤제리", "원딜장인재승리", "럭차차", "함말뚝"];
+	const names = useMemo(() => ["다시시작하는창술사", "내가왜가", "소라민", "윤제리", "원딜장인재승리", "럭차차", "함말뚝"], []);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
@@ -32,7 +32,7 @@ export default function MainPage() {
 		};
 
 		fetchCharacterArmories();
-	}, []);
+	}, [names]);
 
 	return (
 		<Layout>

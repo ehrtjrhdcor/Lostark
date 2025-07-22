@@ -1,12 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useState } from 'react';
 import { API_BASE_URL, API_AUTH_TOKEN } from '../../config/api';
 import Layout from '../../components/Layout';
 
+interface CharacterData {
+    CharacterName: string;
+    ServerName: string;
+    CharacterLevel: string;
+    CharacterClassName: string;
+    ItemAvgLevel: string;
+}
+
+
 export default function CharacterInfoPage() {
     const [characterName, setCharacterName] = useState('');
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<CharacterData[] | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -39,7 +49,7 @@ export default function CharacterInfoPage() {
             } else {
                 setData(result);
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e);
         } finally {
             setLoading(false);
@@ -73,7 +83,7 @@ export default function CharacterInfoPage() {
                 <>
                     <h2>Character List:</h2>
                     <div className="row">
-                        {data.map((character: any, index: number) => (
+                        {data.map((character: CharacterData, index: number) => (
                             <div key={index} className="col-md-6 mb-3">
                                 <div className="card shadow-sm rounded">
                                     <div className="card-body">
@@ -87,7 +97,7 @@ export default function CharacterInfoPage() {
                                             </div>
                                             <div className="col-4 d-flex align-items-center justify-content-center">
                                                 {/* Placeholder for image */}
-                                                <img src="https://via.placeholder.com/100" alt="Character Image" className="img-fluid rounded" />
+                                                <Image src="https://via.placeholder.com/100" alt="Character Image" className="img-fluid rounded" width={100} height={100} />
                                             </div>
                                         </div>
                                     </div>
