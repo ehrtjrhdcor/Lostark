@@ -293,6 +293,80 @@ app.post('/api/lostark/test', async (req, res) => {
     }
 });
 
+/**
+ * 개별 캐릭터 검색 API 엔드포인트
+ * 
+ * POST /api/lostark/character
+ * - 특정 캐릭터 이름으로 프로필 정보 조회
+ */
+app.post('/api/lostark/character', async (req, res) => {
+    const { apiKey, characterName } = req.body;
+
+    if (!apiKey) {
+        return res.status(400).json({
+            success: false,
+            error: 'API 키가 필요합니다.'
+        });
+    }
+
+    if (!characterName) {
+        return res.status(400).json({
+            success: false,
+            error: '캐릭터명이 필요합니다.'
+        });
+    }
+
+    try {
+        const profileUrl = `${LOSTARK_API.BASE_URL}/armories/characters/${encodeURIComponent(characterName)}/profiles`;
+        
+        console.log(`📋 ${characterName} 프로필 조회 중...`);
+        console.log(`URL: ${profileUrl}`);
+
+        const response = await fetch(profileUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            console.log(`✅ ${characterName} 프로필:`, data);
+            res.json({
+                success: true,
+                character: data,
+                message: '캐릭터 검색 성공'
+            });
+        } else {
+            console.error(`❌ ${characterName} 프로필 조회 실패:`, response.status, data);
+            
+            let errorMessage = '캐릭터를 찾을 수 없습니다.';
+            if (response.status === 404) {
+                errorMessage = '존재하지 않는 캐릭터입니다.';
+            } else if (response.status === 429) {
+                errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
+            } else if (response.status === 401) {
+                errorMessage = 'API 키가 유효하지 않습니다.';
+            }
+
+            res.status(response.status).json({
+                success: false,
+                error: errorMessage,
+                details: data
+            });
+        }
+    } catch (error) {
+        console.error('캐릭터 검색 API 호출 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: '캐릭터 검색 중 서버 오류가 발생했습니다.',
+            details: error.message
+        });
+    }
+});
+
 app.listen(PORT, async () => {
     console.log(`서버가 http://localhost:${PORT}에서 실행 중입니다.`);
 
