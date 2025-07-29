@@ -1,23 +1,17 @@
 {
-  "// Vercel 배포 설정 파일": "로스트아크 OCR 프로젝트의 Vercel 배포 설정",
-  "// functions": "서버리스 함수 설정",
   "functions": {
     "api/ocr.js": {
-      "maxDuration": 30,
-      "// maxDuration": "OCR 처리를 위해 함수 실행 시간을 30초로 연장"
+      "maxDuration": 30
     }
   },
-  "// rewrites": "URL 라우팅 규칙 설정",
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1",
-      "// 설명": "API 엔드포인트는 api 폴더의 서버리스 함수로 라우팅"
+      "destination": "/api/$1"
     },
     {
       "source": "/(.*)",
-      "destination": "/public/$1",
-      "// 설명": "정적 파일들은 public 폴더에서 서빙"
+      "destination": "/public/$1"
     }
   ]
 }

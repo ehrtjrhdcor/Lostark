@@ -1,10 +1,21 @@
-// 로스트아크 API 관련 함수들
+/**
+ * 로스트아크 API 관련 함수들
+ * Lost Ark API와의 통신을 담당하며, 캐릭터 정보 조회 및 표시 기능을 제공
+ */
 
-// API 상수
+/**
+ * 로스트아크 개발자 API 기본 URL
+ * @constant {string}
+ */
 const API_BASE_URL = 'https://developer-lostark.game.onstove.com/';
 
-// features 페이지 API 테스트
+/**
+ * features 페이지에서 사용하는 로스트아크 API 연결 테스트 함수
+ * API 키를 검증하고 캐릭터 목록과 프로필 정보를 가져옴
+ * @param {string} apiKey - 로스트아크 개발자 API 키
+ */
 function testLostArkAPI(apiKey) {
+    // 서버의 로스트아크 API 테스트 엔드포인트로 POST 요청 전송
     fetch('/api/lostark/test', {
         method: 'POST',
         headers: {
