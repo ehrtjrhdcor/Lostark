@@ -269,14 +269,14 @@
             padding: 20px;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .image-preview img {
             max-width: 100%;
             max-height: 400px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .analysis-result {
@@ -284,7 +284,7 @@
             padding: 20px;
             background: white;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .loading {
@@ -305,8 +305,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* OCR 결과 스타일 강화 */
@@ -397,6 +402,92 @@
             text-align: center;
             padding: 20px;
         }
+
+        /* 레이드 선택 스타일 */
+        .raid-option {
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .raid-option:hover {
+            border-color: #2980b9;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .raid-option h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+
+        .raid-option p {
+            margin: 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            margin: 0;
+        }
+
+        .modal-header p {
+            color: #666;
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
     </style>
 </head>
 
@@ -442,10 +533,33 @@
             <!-- 주요 특징 페이지 -->
             <div class="page" id="features">
                 <div class="content-section">
+                    <h2>🏹 로스트아크 API 연동</h2>
+                    <p>로스트아크 공식 API를 사용하여 캐릭터 정보를 조회합니다.</p>
+
+                    <!-- API 키 입력 섹션 -->
+                    <div class="api-key-section">
+                        <h3>1. API 키 설정</h3>
+                        <div class="api-input-box">
+                            <input type="password" id="apiKeyInput" placeholder="로스트아크 API 키를 입력하세요"
+                                class="search-input">
+                            <button id="connectBtn" class="search-button">연결 테스트</button>
+                        </div>
+                        <small style="color: #666; margin-top: 10px; display: block;">
+                            API 키는 <a href="https://developer-lostark.game.onstove.com" target="_blank">로스트아크 개발자
+                                페이지</a>에서 발급받을 수 있습니다.
+                        </small>
+                    </div>
+
+                    <!-- API 호출 결과 -->
+                    <div id="apiResult" class="analysis-result" style="display: none;"></div>
+
+                    <!-- 이미지 분석 기능은 캐릭터 선택 후 표시 예정 -->
+                    <!-- 
+                    <hr style="margin: 40px 0; border: 1px solid #eee;">
+
                     <h2>🏹 로스트아크 이미지 분석</h2>
                     <p>로스트아크 스크린샷을 업로드하면 통계를 분석해서 표로 보여드립니다.</p>
 
-                    <!-- 이미지 업로드 영역 -->
                     <div class="upload-area" id="uploadArea">
                         <div class="upload-box">
                             <div class="upload-icon">📁</div>
@@ -458,13 +572,12 @@
                         </div>
                     </div>
 
-                    <!-- 이미지 미리보기 -->
                     <div id="imagePreview" class="image-preview" style="display: none;">
                         <img id="previewImage" alt="미리보기">
                     </div>
 
-                    <!-- 분석 결과 -->
                     <div id="analysisResult" class="analysis-result" style="display: none;"></div>
+                    -->
                 </div>
             </div>
 
@@ -492,9 +605,41 @@
         </div>
     </div>
 
+    <!-- 이미지 분석 모달 -->
+    <div id="imageAnalysisModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeImageAnalysisModal()">&times;</span>
+            <div class="modal-header">
+                <h2 id="modalRaidTitle">레이드 이미지 분석</h2>
+                <p id="modalRaidInfo">캐릭터: <span id="modalCharacterName"></span> | 레이드: <span id="modalRaidName"></span></p>
+            </div>
+
+            <!-- 이미지 업로드 영역 -->
+            <div class="upload-area">
+                <div class="upload-box" id="modalUploadBox">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">
+                        <strong>레이드 스크린샷을 업로드하세요</strong><br>
+                        <small>JPG, PNG 파일만 지원됩니다</small>
+                    </div>
+                    <input type="file" id="modalFileInput" accept="image/*" style="display: none;">
+                    <button type="button" id="modalSelectBtn" class="select-button">파일 선택</button>
+                </div>
+            </div>
+
+            <!-- 이미지 미리보기 -->
+            <div id="modalImagePreview" class="image-preview" style="display: none;">
+                <img id="modalPreviewImage" alt="미리보기">
+            </div>
+
+            <!-- 분석 결과 -->
+            <div id="modalAnalysisResult" class="analysis-result" style="display: none;"></div>
+        </div>
+    </div>
+
     <!-- Tesseract.js CDN -->
     <script src='https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'></script>
-    
+
     <script>
         // 공통 변수
         const API_BASE_URL = 'https://developer-lostark.game.onstove.com/';
@@ -519,8 +664,17 @@
             event.target.classList.add('active');
         }
 
-        // 새로운 이미지 업로드 처리
+        /**
+         * 로스트아크 이미지 업로드 및 분석 시스템
+         * 
+         * 주요 기능:
+         * - 이미지 파일 선택 (클릭/드래그앤드롭)
+         * - 이미지 미리보기
+         * - OCR API 호출 및 결과 표시
+         */
         document.addEventListener('DOMContentLoaded', function () {
+            // 이미지 분석 관련 DOM 요소들 (현재 주석처리되어 있어서 참조하지 않음)
+            /*
             const fileInput = document.getElementById('fileInput');
             const selectBtn = document.getElementById('selectBtn');
             const uploadBox = document.querySelector('.upload-box');
@@ -528,61 +682,16 @@
             const previewImage = document.getElementById('previewImage');
             const analysisResult = document.getElementById('analysisResult');
 
-            // 파일 선택 버튼 클릭
-            selectBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // 이벤트 버블링 방지
-                fileInput.click();
-            });
-
-            // 업로드 박스 클릭 (버튼 영역 제외)
-            uploadBox.addEventListener('click', function(e) {
-                // 버튼을 클릭한 경우가 아닐 때만 실행
-                if (e.target !== selectBtn) {
-                    fileInput.click();
-                }
-            });
-
-            // 파일 선택 처리
-            fileInput.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    handleImageUpload(e.target.files[0]);
-                }
-            });
-
-            // 드래그 앤 드롭 처리
-            uploadBox.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadBox.classList.add('dragover');
-            });
-
-            uploadBox.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                uploadBox.classList.remove('dragover');
-            });
-
-            uploadBox.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadBox.classList.remove('dragover');
-                
-                const files = e.dataTransfer.files;
-                if (files.length > 0 && files[0].type.startsWith('image/')) {
-                    handleImageUpload(files[0]);
-                }
-            });
-
             function handleImageUpload(file) {
                 if (!file || !file.type.startsWith('image/')) {
                     alert('이미지 파일만 업로드할 수 있습니다.');
                     return;
                 }
 
-                // 이미지 미리보기
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     previewImage.src = e.target.result;
                     imagePreview.style.display = 'block';
-                    
-                    // 분석 시작
                     showLoading();
                     analyzeImage(file);
                 };
@@ -631,6 +740,418 @@
                     </div>
                 `;
             }
+            */
+
+            // 로스트아크 API 연동 기능
+            const connectBtn = document.getElementById('connectBtn');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const apiResult = document.getElementById('apiResult');
+
+            connectBtn.addEventListener('click', function () {
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    alert('API 키를 입력해주세요.');
+                    return;
+                }
+
+                // API 호출 시작
+                showApiLoading();
+                testLostArkAPI(apiKey);
+            });
+
+            function showApiLoading() {
+                apiResult.style.display = 'block';
+                apiResult.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <h3>API 연결 테스트 중...</h3>
+                        <p>로스트아크 API에 연결하고 있습니다.</p>
+                    </div>
+                `;
+            }
+
+            function testLostArkAPI(apiKey) {
+                // 서버의 API 엔드포인트로 요청
+                fetch('/api/lostark/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ apiKey: apiKey })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            apiResult.innerHTML = `
+                            <div style="text-align: center; padding: 20px; color: #27ae60;">
+                                <h3>✅ API 연결 성공!</h3>
+                                <p>로스트아크 API가 정상적으로 연결되었습니다.</p>
+                            </div>
+                        `;
+
+                            // 크롬 콘솔에 siblings 응답 출력
+                            console.log('=== 🏹 로스트아크 API 응답 ===');
+                            console.log('Siblings 데이터:', data.result);
+
+                            // 각 캐릭터의 프로필 정보 콘솔 출력
+                            if (data.profiles && data.profiles.length > 0) {
+                                console.log(`\n=== 📋 ${data.profiles.length}명의 캐릭터 프로필 정보 ===`);
+                                data.profiles.forEach((profile, index) => {
+                                    if (profile.success) {
+                                        console.log(`\n${index + 1}. ✅ ${profile.character} 프로필:`);
+                                        console.log(profile.data);
+                                    } else {
+                                        console.log(`\n${index + 1}. ❌ ${profile.character} 프로필 조회 실패:`);
+                                        console.log(profile.error);
+                                    }
+                                });
+                                console.log('\n=== 모든 캐릭터 프로필 출력 완료 ===');
+
+                                // 캐릭터 이미지를 웹에 표시
+                                displayCharacterImages(data.profiles);
+                            }
+                        } else {
+                            showApiError(data.error || '알 수 없는 오류가 발생했습니다.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('API 호출 오류:', error);
+                        showApiError('서버와 연결할 수 없습니다.');
+                    });
+            }
+
+            function showApiError(message) {
+                apiResult.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                        <h3>❌ API 연결 실패</h3>
+                        <p>${message}</p>
+                        <small>API 키를 확인하고 다시 시도해주세요.</small>
+                    </div>
+                `;
+            }
+
+            // 캐릭터 이미지 표시 함수
+            function displayCharacterImages(profiles) {
+                let imageHtml = '<div style="margin-top: 30px;"><h3>🎮 캐릭터 선택</h3><div id="characterCards" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">';
+                
+                profiles.forEach((profile, index) => {
+                    if (profile.success && profile.data && profile.data.CharacterImage) {
+                        imageHtml += `
+                            <div class="character-card" data-character="${profile.character}" data-index="${index}" 
+                                 style="text-align: center; border: 2px solid #3498db; border-radius: 10px; padding: 15px; background: white; cursor: pointer; transition: all 0.3s ease;">
+                                <img src="imgs/sea.jpeg" 
+                                // <img src="${profile.data.CharacterImage}" 
+                                     alt="${profile.character}" 
+                                     style="max-width: 150px; max-height: 200px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div style="display: none; color: #e74c3c; padding: 20px;">이미지 로드 실패</div>
+                                <h4 style="margin: 10px 0 5px 0; color: #2c3e50;">${profile.character}</h4>
+                                <p style="margin: 0; font-size: 12px; color: #666;">
+                                    ${profile.data.CharacterClassName || '클래스 정보 없음'} 
+                                    ${profile.data.ItemAvgLevel ? '• ' + profile.data.ItemAvgLevel : ''}
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        imageHtml += `
+                            <div class="character-card" data-character="${profile.character}" data-index="${index}"
+                                 style="text-align: center; border: 2px solid #e74c3c; border-radius: 10px; padding: 15px; background: #fff5f5; cursor: not-allowed; opacity: 0.6;">
+                                <div style="width: 150px; height: 150px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
+                                    <span>이미지 없음</span>
+                                </div>
+                                <h4 style="margin: 10px 0 5px 0; color: #e74c3c;">${profile.character}</h4>
+                                <p style="margin: 0; font-size: 12px; color: #999;">프로필 조회 실패</p>
+                            </div>
+                        `;
+                    }
+                });
+                
+                imageHtml += '</div></div>';
+                
+                // 레이드 선택 섹션 (초기에는 숨김)
+                imageHtml += `
+                    <div id="raidSelection" style="display: none; margin-top: 30px;">
+                        <h3>⚔️ 레이드 선택</h3>
+                        <p>선택된 캐릭터: <span id="selectedCharacterName" style="font-weight: bold; color: #3498db;"></span></p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px;">
+                            <!-- 카제로스 1막 -->
+                            <div class="raid-option" data-raid="카제로스1막" data-difficulty="노말">
+                                <h4>카제로스 1막 <span style="color: #27ae60;">[노말]</span></h4>
+                                <p>1관문, 2관문</p>
+                            </div>
+                            <div class="raid-option" data-raid="카제로스1막" data-difficulty="하드">
+                                <h4>카제로스 1막 <span style="color: #e74c3c;">[하드]</span></h4>
+                                <p>1관문, 2관문</p>
+                            </div>
+                            
+                            <!-- 카제로스 2막 -->
+                            <div class="raid-option" data-raid="카제로스2막" data-difficulty="노말">
+                                <h4>카제로스 2막 <span style="color: #27ae60;">[노말]</span></h4>
+                                <p>1관문, 2관문</p>
+                            </div>
+                            <div class="raid-option" data-raid="카제로스2막" data-difficulty="하드">
+                                <h4>카제로스 2막 <span style="color: #e74c3c;">[하드]</span></h4>
+                                <p>1관문, 2관문</p>
+                            </div>
+                            
+                            <!-- 카제로스 3막 -->
+                            <div class="raid-option" data-raid="카제로스3막" data-difficulty="노말">
+                                <h4>카제로스 3막 <span style="color: #27ae60;">[노말]</span></h4>
+                                <p>1관문, 2관문, 3관문</p>
+                            </div>
+                            <div class="raid-option" data-raid="카제로스3막" data-difficulty="하드">
+                                <h4>카제로스 3막 <span style="color: #e74c3c;">[하드]</span></h4>
+                                <p>1관문, 2관문, 3관문</p>
+                            </div>
+                            
+                            <!-- 카멘 -->
+                            <div class="raid-option" data-raid="카멘" data-difficulty="익스트림">
+                                <h4>카멘 <span style="color: #9b59b6;">[익스트림]</span></h4>
+                                <p>1관문</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 기존 API 결과에 캐릭터 이미지 추가
+                const currentContent = apiResult.innerHTML;
+                apiResult.innerHTML = currentContent + imageHtml;
+                
+                // 캐릭터 카드 클릭 이벤트 추가
+                addCharacterCardEvents();
+            }
+
+            // 캐릭터 카드 클릭 이벤트 함수
+            function addCharacterCardEvents() {
+                const characterCards = document.querySelectorAll('.character-card');
+                const raidSelection = document.getElementById('raidSelection');
+                const selectedCharacterName = document.getElementById('selectedCharacterName');
+                
+                characterCards.forEach(card => {
+                    card.addEventListener('click', function() {
+                        // 프로필 조회 실패한 캐릭터는 선택 불가
+                        if (card.style.cursor === 'not-allowed') {
+                            return;
+                        }
+                        
+                        // 이전 선택 해제
+                        characterCards.forEach(c => {
+                            c.style.border = '2px solid #3498db';
+                            c.style.boxShadow = 'none';
+                            c.style.backgroundColor = 'white';
+                        });
+                        
+                        // 현재 카드 선택 표시
+                        card.style.border = '3px solid #e74c3c';
+                        card.style.boxShadow = '0 0 15px rgba(231, 76, 60, 0.3)';
+                        card.style.backgroundColor = '#fff5f5';
+                        
+                        // 선택된 캐릭터 이름 표시
+                        const characterName = card.dataset.character;
+                        selectedCharacterName.textContent = characterName;
+                        
+                        // 레이드 선택 섹션 표시
+                        raidSelection.style.display = 'block';
+                        
+                        console.log('선택된 캐릭터:', characterName);
+                        
+                        // 레이드 카드 클릭 이벤트 추가
+                        addRaidCardEvents(characterName);
+                    });
+                    
+                    // 호버 효과 (선택 가능한 카드만)
+                    if (card.style.cursor !== 'not-allowed') {
+                        card.addEventListener('mouseenter', function() {
+                            if (card.style.border !== '3px solid #e74c3c') {
+                                card.style.transform = 'translateY(-5px)';
+                                card.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15)';
+                            }
+                        });
+                        
+                        card.addEventListener('mouseleave', function() {
+                            if (card.style.border !== '3px solid #e74c3c') {
+                                card.style.transform = 'translateY(0)';
+                                card.style.boxShadow = 'none';
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 레이드 카드 클릭 이벤트 함수
+            function addRaidCardEvents(characterName) {
+                const raidCards = document.querySelectorAll('.raid-option');
+                
+                raidCards.forEach(card => {
+                    // 기존 이벤트 리스너 제거 (중복 방지)
+                    card.replaceWith(card.cloneNode(true));
+                });
+                
+                // 새로운 카드들에 이벤트 추가
+                const newRaidCards = document.querySelectorAll('.raid-option');
+                newRaidCards.forEach(card => {
+                    card.addEventListener('click', function() {
+                        const raid = card.dataset.raid;
+                        const difficulty = card.dataset.difficulty;
+                        openImageAnalysisModal(characterName, raid, difficulty);
+                    });
+                });
+            }
+
+            // 이미지 분석 모달 열기
+            function openImageAnalysisModal(characterName, raid, difficulty) {
+                const modal = document.getElementById('imageAnalysisModal');
+                const modalCharacterName = document.getElementById('modalCharacterName');
+                const modalRaidName = document.getElementById('modalRaidName');
+                
+                modalCharacterName.textContent = characterName;
+                modalRaidName.textContent = `${raid} [${difficulty}]`;
+                
+                modal.style.display = 'block';
+                
+                // 모달 내 파일 업로드 이벤트 초기화
+                initModalFileUpload();
+                
+                console.log(`이미지 분석 모달 열림: ${characterName} - ${raid} [${difficulty}]`);
+            }
+
+            // 모달 내 파일 업로드 초기화
+            function initModalFileUpload() {
+                const modalFileInput = document.getElementById('modalFileInput');
+                const modalSelectBtn = document.getElementById('modalSelectBtn');
+                const modalUploadBox = document.getElementById('modalUploadBox');
+                const modalImagePreview = document.getElementById('modalImagePreview');
+                const modalPreviewImage = document.getElementById('modalPreviewImage');
+                const modalAnalysisResult = document.getElementById('modalAnalysisResult');
+
+                // 파일 선택 버튼 클릭
+                modalSelectBtn.addEventListener('click', function() {
+                    modalFileInput.click();
+                });
+
+                // 파일 업로드 박스 클릭
+                modalUploadBox.addEventListener('click', function() {
+                    modalFileInput.click();
+                });
+
+                // 파일 선택 이벤트
+                modalFileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        handleModalImageUpload(file);
+                    }
+                });
+
+                // 드래그 앤 드롭 이벤트
+                modalUploadBox.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    modalUploadBox.classList.add('dragover');
+                });
+
+                modalUploadBox.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    modalUploadBox.classList.remove('dragover');
+                });
+
+                modalUploadBox.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    modalUploadBox.classList.remove('dragover');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        handleModalImageUpload(files[0]);
+                    }
+                });
+            }
+
+            // 모달에서 이미지 업로드 처리
+            function handleModalImageUpload(file) {
+                if (!file || !file.type.startsWith('image/')) {
+                    alert('이미지 파일만 업로드할 수 있습니다.');
+                    return;
+                }
+
+                const modalImagePreview = document.getElementById('modalImagePreview');
+                const modalPreviewImage = document.getElementById('modalPreviewImage');
+                const modalAnalysisResult = document.getElementById('modalAnalysisResult');
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    modalPreviewImage.src = e.target.result;
+                    modalImagePreview.style.display = 'block';
+                    showModalLoading();
+                    analyzeModalImage(file);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 모달 로딩 표시
+            function showModalLoading() {
+                const modalAnalysisResult = document.getElementById('modalAnalysisResult');
+                modalAnalysisResult.style.display = 'block';
+                modalAnalysisResult.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <h3>이미지 분석 중...</h3>
+                        <p>레이드 스크린샷을 분석하고 있습니다.</p>
+                    </div>
+                `;
+            }
+
+            // 모달에서 이미지 분석
+            function analyzeModalImage(file) {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                fetch('/api/ocr', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const modalAnalysisResult = document.getElementById('modalAnalysisResult');
+                    if (data.success && data.table_html) {
+                        modalAnalysisResult.innerHTML = data.table_html;
+                    } else {
+                        showModalError(data.error || '알 수 없는 오류가 발생했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('분석 오류:', error);
+                    showModalError('서버와 연결할 수 없습니다.');
+                });
+            }
+
+            // 모달 에러 표시
+            function showModalError(message) {
+                const modalAnalysisResult = document.getElementById('modalAnalysisResult');
+                modalAnalysisResult.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                        <h3>❌ 오류 발생</h3>
+                        <p>${message}</p>
+                        <small>다른 이미지로 다시 시도해보세요.</small>
+                    </div>
+                `;
+            }
+
+            // 이미지 분석 모달 닫기
+            window.closeImageAnalysisModal = function() {
+                const modal = document.getElementById('imageAnalysisModal');
+                modal.style.display = 'none';
+                
+                // 모달 내용 초기화
+                document.getElementById('modalFileInput').value = '';
+                document.getElementById('modalImagePreview').style.display = 'none';
+                document.getElementById('modalAnalysisResult').style.display = 'none';
+            }
+
+            // 모달 외부 클릭 시 닫기
+            window.addEventListener('click', function(e) {
+                const modal = document.getElementById('imageAnalysisModal');
+                if (e.target === modal) {
+                    closeImageAnalysisModal();
+                }
+            });
         });
     </script>
 </body>
