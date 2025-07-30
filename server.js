@@ -99,6 +99,19 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * API 키 제공 엔드포인트
+ * 
+ * GET /api/config
+ * - 클라이언트에서 사용할 API 키를 제공
+ */
+app.get('/api/config', (req, res) => {
+    res.json({
+        success: true,
+        apiKey: LOSTARK_API.API_KEY
+    });
+});
+
+/**
  * OCR 분석 API 엔드포인트
  * 
  * POST /api/ocr
@@ -201,10 +214,98 @@ app.post('/api/lostark/test', async (req, res) => {
     }
 
     try {
-        // TODO: API 호출 구현
+        // 테스트용 캐릭터 "다시시작하는창술사"로 형제 캐릭터 목록 조회
+        const testCharacterName = '다시시작하는창술사';
+        
+        // 1단계: 형제 캐릭터 목록 조회
+        const siblingsUrl = `${LOSTARK_API.BASE_URL}/characters/${encodeURIComponent(testCharacterName)}/siblings`;
+        
+        console.log(`📋 API 테스트: ${testCharacterName} 형제 캐릭터 조회 중...`);
+        console.log(`URL: ${siblingsUrl}`);
+
+        const siblingsResponse = await fetch(siblingsUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        const siblingsData = await siblingsResponse.json();
+
+        if (!siblingsResponse.ok) {
+            console.error(`❌ API 테스트 실패:`, siblingsResponse.status, siblingsData);
+            
+            let errorMessage = 'API 연결에 실패했습니다.';
+            if (siblingsResponse.status === 429) {
+                errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
+            } else if (siblingsResponse.status === 401) {
+                errorMessage = 'API 키가 유효하지 않습니다.';
+            }
+
+            return res.status(siblingsResponse.status).json({
+                success: false,
+                error: errorMessage,
+                details: siblingsData
+            });
+        }
+
+        console.log(`✅ API 테스트 성공: ${testCharacterName} 형제 캐릭터 목록:`, siblingsData);
+
+        // 2단계: 각 캐릭터의 프로필 정보 조회 (최대 5명)
+        let profileResults = [];
+        if (Array.isArray(siblingsData) && siblingsData.length > 0) {
+            const charactersToProcess = siblingsData.slice(0, 5); // 테스트용으로 최대 5명만
+            console.log(`=== ${charactersToProcess.length}명의 캐릭터 프로필 조회 시작 ===`);
+
+            for (const character of charactersToProcess) {
+                try {
+                    const profileUrl = `${LOSTARK_API.BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
+                    console.log(`📋 ${character.CharacterName} 프로필 조회 중...`);
+
+                    const profileResponse = await fetch(profileUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const profileData = await profileResponse.json();
+
+                    if (profileResponse.ok) {
+                        console.log(`✅ ${character.CharacterName} 프로필:`, profileData);
+                        profileResults.push({
+                            character: character.CharacterName,
+                            success: true,
+                            data: profileData
+                        });
+                    } else {
+                        console.error(`❌ ${character.CharacterName} 프로필 조회 실패:`, profileResponse.status, profileData);
+                        profileResults.push({
+                            character: character.CharacterName,
+                            success: false,
+                            error: profileData
+                        });
+                    }
+                } catch (profileError) {
+                    console.error(`❌ ${character.CharacterName} 프로필 API 호출 오류:`, profileError.message);
+                    profileResults.push({
+                        character: character.CharacterName,
+                        success: false,
+                        error: profileError.message
+                    });
+                }
+            }
+
+            console.log(`=== API 테스트 완료 ===`);
+        }
+
         res.json({
             success: true,
-            message: '테스트용 응답'
+            result: siblingsData,
+            profiles: profileResults,
+            message: `API 연결 성공! ${testCharacterName}의 형제 캐릭터 ${siblingsData.length}명을 찾았습니다.`
         });
     } catch (error) {
         console.error('로스트아크 API 호출 실패:', error);
