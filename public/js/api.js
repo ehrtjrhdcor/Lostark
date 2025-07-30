@@ -1,109 +1,86 @@
 /**
  * 로스트아크 API 관련 함수들
- * Lost Ark API와의 통신을 담당하며, 캐릭터 정보 조회 및 표시 기능을 제공
+ * 서버 API 엔드포인트를 통해 로스트아크 데이터를 가져옴
  */
 
 /**
- * 로스트아크 개발자 API 기본 URL
- * @constant {string}
+ * 배포 환경 상수
  */
-const API_BASE_URL = 'https://developer-lostark.game.onstove.com/';
+const DEPLOY_CONFIG = {
+    VERCEL_URL: 'https://lostark-lyart.vercel.app'
+};
+
+/**
+ * 환경에 따른 API 엔드포인트 결정
+ * - 로컬 개발: /api/lostark/test, /api/lostark/connect, /api/lostark/character
+ * - Vercel 배포: /api/lostark (action 파라미터로 구분)
+ */
+function getApiEndpoint(action) {
+    // Vercel 배포 환경인지 확인 (도메인에 vercel이 포함되어 있으면)
+    const isVercel = window.location.hostname.includes('vercel') ||
+        window.location.hostname.includes('netlify') ||
+        (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+
+    if (isVercel) {
+        return '/api/lostark';
+    } else {
+        // 로컬 환경
+        switch (action) {
+            case 'test': return '/api/lostark/test';
+            case 'connect': return '/api/lostark/connect';
+            case 'character': return '/api/lostark/character';
+            default: return '/api/lostark/test';
+        }
+    }
+}
+
+/**
+ * API 요청 본문 생성
+ */
+function getRequestBody(action, apiKey, characterName = null) {
+    const isVercel = window.location.hostname.includes('vercel') ||
+        window.location.hostname.includes('netlify') ||
+        (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+
+    if (isVercel) {
+        return JSON.stringify({
+            action: action,
+            apiKey: apiKey,
+            characterName: characterName
+        });
+    } else {
+        const body = { apiKey: apiKey };
+        if (characterName) {
+            body.characterName = characterName;
+        }
+        return JSON.stringify(body);
+    }
+}
 
 /**
  * features 페이지에서 사용하는 로스트아크 API 연결 테스트 함수
- * API 키를 검증하고 캐릭터 목록과 프로필 정보를 가져옴
  * @param {string} apiKey - 로스트아크 개발자 API 키
  */
 function testLostArkAPI(apiKey) {
-    // 서버의 로스트아크 API 테스트 엔드포인트로 POST 요청 전송
-    fetch('/api/lostark/test', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ apiKey: apiKey })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const apiResult = document.getElementById('apiResult');
-        if (data.success) {
-            apiResult.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #27ae60;">
-                    <h3>✅ API 연결 성공!</h3>
-                    <p>로스트아크 API가 정상적으로 연결되었습니다.</p>
-                </div>
-            `;
+    showApiLoading();
 
-            // 크롬 콘솔에 siblings 응답 출력
-            console.log('=== 🏹 로스트아크 API 응답 ===');
-            console.log('Siblings 데이터:', data.result);
-
-            // 각 캐릭터의 프로필 정보 콘솔 출력
-            if (data.profiles && data.profiles.length > 0) {
-                console.log(`\n=== 📋 ${data.profiles.length}명의 캐릭터 프로필 정보 ===`);
-                data.profiles.forEach((profile, index) => {
-                    if (profile.success) {
-                        console.log(`\n${index + 1}. ✅ ${profile.character} 프로필:`);
-                        console.log(profile.data);
-                    } else {
-                        console.log(`\n${index + 1}. ❌ ${profile.character} 프로필 조회 실패:`);
-                        console.log(profile.error);
-                    }
-                });
-                console.log('\n=== 모든 캐릭터 프로필 출력 완료 ===');
-
-                // 캐릭터 이미지를 웹에 표시
-                displayCharacterImages(data.profiles);
-            }
-        } else {
-            showApiError(data.error || '알 수 없는 오류가 발생했습니다.');
-        }
-    })
-    .catch(error => {
-        console.error('API 호출 오류:', error);
-        showApiError('서버와 연결할 수 없습니다.');
-    });
+    // TODO: API 호출 구현
 }
 
-// about 페이지 API 테스트
+/**
+ * about 페이지 API 테스트
+ * @param {string} apiKey - 로스트아크 개발자 API 키
+ */
 function testAboutLostArkAPI(apiKey) {
-    fetch('/api/lostark/test', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ apiKey: apiKey })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const aboutApiResult = document.getElementById('aboutApiResult');
-        if (data.success) {
-            window.currentApiKey = apiKey;
-            aboutApiResult.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #27ae60;">
-                    <h3>✅ API 연결 성공!</h3>
-                    <p>로스트아크 API가 정상적으로 연결되었습니다.</p>
-                    <p>이제 캐릭터를 검색할 수 있습니다.</p>
-                </div>
-            `;
-            
-            // 캐릭터 검색 활성화
-            const characterSearchInput = document.getElementById('characterSearchInput');
-            const characterSearchBtn = document.getElementById('characterSearchBtn');
-            characterSearchInput.disabled = false;
-            characterSearchBtn.disabled = false;
-            characterSearchInput.focus();
-        } else {
-            showAboutApiError(data.error || '알 수 없는 오류가 발생했습니다.');
-        }
-    })
-    .catch(error => {
-        console.error('API 호출 오류:', error);
-        showAboutApiError('서버와 연결할 수 없습니다.');
-    });
+    showAboutApiLoading();
+
+    // TODO: API 호출 구현
 }
 
-// 개별 캐릭터 검색
+/**
+ * 개별 캐릭터 검색
+ * @param {string} characterName - 검색할 캐릭터명
+ */
 function searchCharacter(characterName) {
     const characterSearchResult = document.getElementById('characterSearchResult');
     characterSearchResult.style.display = 'block';
@@ -111,30 +88,42 @@ function searchCharacter(characterName) {
         <div class="loading">
             <div class="loading-spinner"></div>
             <h3>캐릭터 검색 중...</h3>
-            <p>"${characterName}" 캐릭터 정보를 가져오고 있습니다.</p>
+            <p>"${characterName}" 캐릭터의 형제 캐릭터 목록을 가져오고 있습니다.</p>
         </div>
     `;
 
-    fetch('/api/lostark/character', {
+    // 1단계: 형제 캐릭터 목록 조회
+    fetch(getApiEndpoint('character'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-            apiKey: window.currentApiKey,
-            characterName: characterName 
+        body: getRequestBody('character', window.currentApiKey, characterName)
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('서버에서 JSON이 아닌 응답을 받았습니다.');
+            }
+            return response.json();
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            displayCharacterCard(data.character, characterName);
-        } else {
-            showCharacterSearchError(data.error || '캐릭터를 찾을 수 없습니다.');
-        }
-    })
-    .catch(error => {
-        console.error('캐릭터 검색 오류:', error);
-        showCharacterSearchError('서버와 연결할 수 없습니다.');
-    });
+        .then(data => {
+            if (data.success) {
+                // 성공 시 이미지 카드로 표시
+                if (data.profiles && data.profiles.length > 0) {
+                    displayCharacterImagesForAbout(data.profiles);
+                } else {
+                    showCharacterSearchError('형제 캐릭터를 찾을 수 없습니다.');
+                }
+            } else {
+                showCharacterSearchError(data.error || '캐릭터를 찾을 수 없습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('캐릭터 검색 오류:', error);
+            showCharacterSearchError('서버와 연결할 수 없습니다.');
+        });
 }

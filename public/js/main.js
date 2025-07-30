@@ -28,46 +28,44 @@ function initializeEventListeners() {
         });
     }
 
-    // about 페이지 API 연결 버튼
-    const aboutConnectBtn = document.getElementById('aboutConnectBtn');
+    // 캐릭터 검색 관련 요소
     const aboutApiKeyInput = document.getElementById('aboutApiKeyInput');
     const characterSearchInput = document.getElementById('characterSearchInput');
     const characterSearchBtn = document.getElementById('characterSearchBtn');
-    
-    if (aboutConnectBtn && aboutApiKeyInput) {
-        aboutConnectBtn.addEventListener('click', function () {
+
+    // 캐릭터 검색 버튼
+    if (characterSearchBtn && characterSearchInput && aboutApiKeyInput) {
+        characterSearchBtn.addEventListener('click', function () {
             const apiKey = aboutApiKeyInput.value.trim();
+            const characterName = characterSearchInput.value.trim();
+            
             if (!apiKey) {
                 alert('API 키를 입력해주세요.');
                 return;
             }
             
-            showAboutApiLoading();
-            testAboutLostArkAPI(apiKey);
-        });
-    }
-
-    // 캐릭터 검색 버튼
-    if (characterSearchBtn && characterSearchInput) {
-        characterSearchBtn.addEventListener('click', function () {
-            const characterName = characterSearchInput.value.trim();
             if (!characterName) {
                 alert('캐릭터명을 입력해주세요.');
                 return;
             }
             
-            if (!window.currentApiKey) {
-                alert('먼저 API 키를 연결해주세요.');
-                return;
-            }
+            // API 키를 전역 변수에 저장
+            window.currentApiKey = apiKey;
             
             searchCharacter(characterName);
         });
 
-        // 캐릭터 검색 입력 엔터키 이벤트
-        characterSearchInput.addEventListener('keypress', function(e) {
+        // 엔터 키 검색 지원
+        characterSearchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 characterSearchBtn.click();
+            }
+        });
+        
+        // API 키 입력창에서도 엔터 키 지원
+        aboutApiKeyInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                characterSearchInput.focus();
             }
         });
     }

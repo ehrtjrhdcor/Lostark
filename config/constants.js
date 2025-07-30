@@ -58,9 +58,17 @@ const SERVER = {
     STATIC_DIR: 'public'
 };
 
+/**
+ * 배포 환경 URL 상수
+ */
+const DEPLOY = {
+    VERCEL_URL: 'https://lostark-lyart.vercel.app'
+};
+
 module.exports = {
     LOSTARK_API,
     RAIDS,
     OCR,
-    SERVER
+    SERVER,
+    DEPLOY
 };

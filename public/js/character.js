@@ -216,3 +216,96 @@ function addRaidCardEvents(characterName) {
         });
     });
 }
+
+// about 페이지용 캐릭터 이미지 표시 함수
+function displayCharacterImagesForAbout(profiles) {
+    const characterSearchResult = document.getElementById('characterSearchResult');
+    let imageHtml = '<div style="margin-top: 30px;"><h3>🎮 형제 캐릭터 목록</h3><div id="characterCards" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">';
+    
+    profiles.forEach((profile, index) => {
+        if (profile.success && profile.data && profile.data.CharacterImage) {
+            imageHtml += `
+                <div class="character-card" data-character="${profile.character}" data-index="${index}" 
+                     style="text-align: center; border: 2px solid #3498db; border-radius: 10px; padding: 15px; background: white; cursor: pointer; transition: all 0.3s ease;">
+                    <img src="${profile.data.CharacterImage}" 
+                         alt="${profile.character}" 
+                         style="max-width: 150px; max-height: 200px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display: none; color: #e74c3c; padding: 20px;">이미지 로드 실패</div>
+                    <h4 style="margin: 10px 0 5px 0; color: #2c3e50;">${profile.character}</h4>
+                    <p style="margin: 0; font-size: 12px; color: #666;">
+                        ${profile.data.CharacterClassName || '클래스 정보 없음'} 
+                        ${profile.data.ItemAvgLevel ? '• ' + profile.data.ItemAvgLevel : ''}
+                    </p>
+                </div>
+            `;
+        } else {
+            imageHtml += `
+                <div class="character-card" data-character="${profile.character}" data-index="${index}"
+                     style="text-align: center; border: 2px solid #e74c3c; border-radius: 10px; padding: 15px; background: #fff5f5; cursor: not-allowed; opacity: 0.6;">
+                    <div style="width: 150px; height: 150px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
+                        <span>이미지 없음</span>
+                    </div>
+                    <h4 style="margin: 10px 0 5px 0; color: #e74c3c;">${profile.character}</h4>
+                    <p style="margin: 0; font-size: 12px; color: #999;">프로필 조회 실패</p>
+                </div>
+            `;
+        }
+    });
+    
+    imageHtml += '</div></div>';
+    
+    characterSearchResult.innerHTML = imageHtml;
+    characterSearchResult.style.display = 'block';
+    characterSearchResult.classList.remove('hidden');
+    
+    // 캐릭터 카드 클릭 이벤트 추가 (about 페이지용)
+    addCharacterCardEventsForAbout();
+}
+
+// about 페이지용 캐릭터 카드 클릭 이벤트 함수
+function addCharacterCardEventsForAbout() {
+    const characterCards = document.querySelectorAll('.character-card');
+    
+    characterCards.forEach(card => {
+        // 프로필 조회 실패한 캐릭터는 선택 불가
+        if (card.style.cursor === 'not-allowed') {
+            return;
+        }
+        
+        card.addEventListener('click', function() {
+            // 이전 선택 해제
+            characterCards.forEach(c => {
+                c.style.border = '2px solid #3498db';
+                c.style.boxShadow = 'none';
+                c.style.backgroundColor = 'white';
+            });
+            
+            // 현재 카드 선택 표시
+            card.style.border = '3px solid #e74c3c';
+            card.style.boxShadow = '0 0 15px rgba(231, 76, 60, 0.3)';
+            card.style.backgroundColor = '#fff5f5';
+            
+            // 선택된 캐릭터 정보
+            const characterName = card.dataset.character;
+            console.log('선택된 캐릭터:', characterName);
+            
+            // about 페이지에서는 캐릭터 선택 시 추가 동작 없음 (단순 표시용)
+        });
+        
+        // 호버 효과 (선택 가능한 카드만)
+        card.addEventListener('mouseenter', function() {
+            if (card.style.border !== '3px solid #e74c3c') {
+                card.style.transform = 'translateY(-5px)';
+                card.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (card.style.border !== '3px solid #e74c3c') {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = 'none';
+            }
+        });
+    });
+}
