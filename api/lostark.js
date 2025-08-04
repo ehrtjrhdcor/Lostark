@@ -6,6 +6,19 @@
 
 const LOSTARK_API_BASE_URL = 'https://developer-lostark.game.onstove.com';
 
+// API 키 풀 관리
+const API_KEYS = process.env.LOSTARK_API_KEYS ? process.env.LOSTARK_API_KEYS.split(',') : [];
+
+// 랜덤 API 키 선택 함수
+function getRandomApiKey() {
+	if (API_KEYS.length === 0) {
+		throw new Error('API 키가 설정되지 않았습니다. 환경변수 LOSTARK_API_KEYS를 확인하세요.');
+	}
+	const randomIndex = Math.floor(Math.random() * API_KEYS.length);
+	console.log(`🔑 API 키 ${randomIndex + 1}/${API_KEYS.length} 사용 중...`);
+	return API_KEYS[randomIndex];
+}
+
 /**
  * 로스트아크 API 핸들러 함수
  * 
@@ -30,25 +43,33 @@ export default async function handler(req, res) {
 		return res.status(405).json({ success: false, error: 'Method not allowed' });
 	}
 
-	const { action, apiKey, characterName } = req.body;
+	const { action, characterName } = req.body;
 
-	if (!apiKey) {
-		return res.status(400).json({
+	// 환경변수에서 API 키 확인
+	try {
+		if (API_KEYS.length === 0) {
+			return res.status(500).json({
+				success: false,
+				error: 'API 키가 서버에 설정되지 않았습니다.'
+			});
+		}
+	} catch (error) {
+		return res.status(500).json({
 			success: false,
-			error: 'API 키가 필요합니다.'
+			error: 'API 키 설정 오류: ' + error.message
 		});
 	}
 
 	try {
 		switch (action) {
 			case 'test':
-				return await handleApiTest(req, res, apiKey);
+				return await handleApiTest(req, res);
 			case 'connect':
-				return await handleApiConnect(req, res, apiKey);
+				return await handleApiConnect(req, res);
 			case 'character_siblings':
-				return await handleCharacterSiblings(req, res, apiKey, characterName);
+				return await handleCharacterSiblings(req, res, characterName);
 			case 'character_profile':
-				return await handleCharacterProfile(req, res, apiKey, characterName);
+				return await handleCharacterProfile(req, res, characterName);
 			default:
 				return res.status(400).json({
 					success: false,
@@ -68,7 +89,7 @@ export default async function handler(req, res) {
 /**
  * API 테스트 (features 페이지용)
  */
-async function handleApiTest(req, res, apiKey) {
+async function handleApiTest(req, res) {
 	try {
 		// 테스트용 캐릭터 "다시시작하는창술사"로 형제 캐릭터 목록 조회
 		const testCharacterName = '다시시작하는창술사';
@@ -79,6 +100,7 @@ async function handleApiTest(req, res, apiKey) {
 		console.log(`📋 API 테스트: ${testCharacterName} 형제 캐릭터 조회 중...`);
 		console.log(`URL: ${siblingsUrl}`);
 
+		const apiKey = getRandomApiKey();
 		const siblingsResponse = await fetch(siblingsUrl, {
 			method: 'GET',
 			headers: {
@@ -119,10 +141,11 @@ async function handleApiTest(req, res, apiKey) {
 					const profileUrl = `${LOSTARK_API_BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
 					console.log(`📋 ${character.CharacterName} 프로필 조회 중...`);
 
+					const profileApiKey = getRandomApiKey();
 					const profileResponse = await fetch(profileUrl, {
 						method: 'GET',
 						headers: {
-							'Authorization': `Bearer ${apiKey}`,
+							'Authorization': `Bearer ${profileApiKey}`,
 							'Accept': 'application/json'
 						}
 					});
@@ -176,7 +199,7 @@ async function handleApiTest(req, res, apiKey) {
 /**
  * API 연결 테스트 (about 페이지용)
  */
-async function handleApiConnect(req, res, apiKey) {
+async function handleApiConnect(req, res) {
 	// TODO: API 호출 구현
 	return res.json({
 		success: true,
@@ -187,7 +210,7 @@ async function handleApiConnect(req, res, apiKey) {
 /**
  * 형제 캐릭터 목록 조회
  */
-async function handleCharacterSiblings(req, res, apiKey, characterName) {
+async function handleCharacterSiblings(req, res, characterName) {
 	if (!characterName) {
 		return res.status(400).json({
 			success: false,
@@ -201,6 +224,7 @@ async function handleCharacterSiblings(req, res, apiKey, characterName) {
 		console.log(`📋 ${characterName} 형제 캐릭터 조회 중...`);
 		console.log(`URL: ${siblingsUrl}`);
 
+		const apiKey = getRandomApiKey();
 		const siblingsResponse = await fetch(siblingsUrl, {
 			method: 'GET',
 			headers: {
@@ -251,7 +275,7 @@ async function handleCharacterSiblings(req, res, apiKey, characterName) {
 /**
  * 단일 캐릭터 프로필 조회
  */
-async function handleCharacterProfile(req, res, apiKey, characterName) {
+async function handleCharacterProfile(req, res, characterName) {
 	if (!characterName) {
 		return res.status(400).json({
 			success: false,
@@ -263,6 +287,7 @@ async function handleCharacterProfile(req, res, apiKey, characterName) {
 		const profileUrl = `${LOSTARK_API_BASE_URL}/armories/characters/${encodeURIComponent(characterName)}/profiles`;
 		console.log(`📋 ${characterName} 프로필 조회 중...`);
 
+		const apiKey = getRandomApiKey();
 		const profileResponse = await fetch(profileUrl, {
 			method: 'GET',
 			headers: {
