@@ -46,7 +46,7 @@
                     <p>로스트아크 API를 사용하여 캐릭터 정보를 검색합니다.</p>
 
                     <!-- API 키 입력 섹션 -->
-                    <div class="api-key-section">
+                    <div class="api-key-section d-none">
                         <h3>1. API 키 설정</h3>
                         <div class="api-input-box">
                             <input type="password" id="aboutApiKeyInput" placeholder="로스트아크 API 키를 입력하세요"
@@ -60,10 +60,11 @@
 
                     <!-- 캐릭터 검색 섹션 -->
                     <div class="character-search-section">
-                        <h3>2. 캐릭터 검색</h3>
+                        <h3>캐릭터 검색</h3>
                         <div class="search-container character-search-container">
                             <div class="search-box">
-                                <input type="text" id="characterSearchInput" class="search-input" placeholder="캐릭터명을 입력하세요...">
+                                <input type="text" id="characterSearchInput" class="search-input"
+                                    placeholder="캐릭터명을 입력하세요...">
                                 <button id="characterSearchBtn" class="search-button">검색</button>
                             </div>
                         </div>
@@ -84,7 +85,7 @@
                     <p>로스트아크 공식 API를 사용하여 캐릭터 정보를 조회합니다.</p>
 
                     <!-- API 키 입력 섹션 -->
-                    <div class="api-key-section">
+                    <div class="api-key-section d-none">
                         <h3>1. API 키 설정</h3>
                         <div class="api-input-box">
                             <input type="password" id="apiKeyInput" placeholder="로스트아크 API 키를 입력하세요"
@@ -98,10 +99,11 @@
 
                     <!-- 캐릭터 검색 섹션 -->
                     <div class="character-search-section">
-                        <h3>2. 캐릭터 검색</h3>
+                        <h3>캐릭터 검색</h3>
                         <div class="search-container character-search-container">
                             <div class="search-box">
-                                <input type="text" id="featuresCharacterSearchInput" class="search-input" placeholder="캐릭터명을 입력하세요...">
+                                <input type="text" id="featuresCharacterSearchInput" class="search-input"
+                                    placeholder="캐릭터명을 입력하세요...">
                                 <button id="featuresCharacterSearchBtn" class="search-button">검색</button>
                             </div>
                         </div>
@@ -123,6 +125,22 @@
                         <li><code>npm start</code> 명령어로 서버를 시작하세요</li>
                         <li>브라우저에서 <a href="http://localhost:1707">http://localhost:1707</a>를 방문하세요</li>
                     </ol>
+
+                    <!-- OCR 연습 섹션 -->
+                    <div class="ocr-practice-section"
+                        style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                        <h3>🔍 OCR 연습</h3>
+                        <p style="margin-bottom: 15px;">전투분석기 이미지를 업로드해서 OCR 기능을 테스트해보세요.</p>
+
+                        <div class="mini-upload-area"
+                            style="border: 2px dashed #ddd; padding: 15px; text-align: center; border-radius: 5px; margin-bottom: 15px;">
+                            <input type="file" id="ocrTestFile" accept="image/*" style="display: none;">
+                            <button type="button" id="ocrTestBtn"
+                                style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">이미지
+                                선택</button>
+                            <div id="ocrTestResult" style="margin-top: 15px; display: none;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -143,7 +161,8 @@
             <span class="close-btn" onclick="closeImageAnalysisModal()">&times;</span>
             <div class="modal-header">
                 <h2 id="modalRaidTitle">레이드 이미지 분석</h2>
-                <p id="modalRaidInfo">캐릭터: <span id="modalCharacterName"></span> | 레이드: <span id="modalRaidName"></span></p>
+                <p id="modalRaidInfo">캐릭터: <span id="modalCharacterName"></span> | 레이드: <span id="modalRaidName"></span>
+                </p>
             </div>
 
             <!-- 이미지 업로드 영역 -->

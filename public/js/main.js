@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 이벤트 리스너 초기화
 function initializeEventListeners() {
+    // OCR 연습 섹션 이벤트
+    initializeOCRPracticeEvents();
+    
     // features 페이지 캐릭터 검색 관련 요소
     const apiKeyInput = document.getElementById('apiKeyInput');
     const featuresCharacterSearchInput = document.getElementById('featuresCharacterSearchInput');
@@ -158,6 +161,61 @@ async function loadApiKey() {
         
         window.currentApiKey = defaultApiKey;
         console.log('기본 API 키가 설정되었습니다.');
+    }
+}
+
+// OCR 연습 섹션 이벤트 초기화
+function initializeOCRPracticeEvents() {
+    const ocrTestBtn = document.getElementById('ocrTestBtn');
+    const ocrTestFile = document.getElementById('ocrTestFile');
+    const ocrTestResult = document.getElementById('ocrTestResult');
+
+    if (ocrTestBtn && ocrTestFile && ocrTestResult) {
+        ocrTestBtn.addEventListener('click', function() {
+            ocrTestFile.click();
+        });
+
+        ocrTestFile.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadOCRTest(file);
+            }
+        });
+    }
+}
+
+// OCR 테스트 업로드 함수
+async function uploadOCRTest(file) {
+    const resultDiv = document.getElementById('ocrTestResult');
+    
+    if (!resultDiv) return;
+    
+    try {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div style="text-align: center; padding: 10px;">🔄 분석 중...</div>';
+        
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('/api/ocr', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            resultDiv.innerHTML = `
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: white;">
+                    ${result.table_html || '<p>분석 완료</p>'}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div style="color: red; padding: 10px;">❌ 분석 실패: ${result.error || '알 수 없는 오류'}</div>`;
+        }
+    } catch (error) {
+        console.error('OCR 테스트 중 오류:', error);
+        resultDiv.innerHTML = `<div style="color: red; padding: 10px;">❌ 네트워크 오류: ${error.message}</div>`;
     }
 }
 

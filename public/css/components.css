@@ -79,6 +79,39 @@
     }
 }
 
+/* 프로그레스 바 */
+.progress-bar-container {
+    width: 80%;
+    max-width: 400px;
+    margin: 20px auto;
+    background-color: #f0f0f0;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #3498db;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease-in-out;
+}
+
+.progress-text {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* 캐릭터 카드 컨테이너 */
+.character-card-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
 /* 결과 박스 스타일 */
 .analysis-result {
     margin: 20px 0;

@@ -21,6 +21,7 @@ const { spawn } = require('child_process');  // Python 프로세스 실행
 const fs = require('fs');
 const { testConnection } = require('./config/database');  // MySQL 연결
 const { LOSTARK_API } = require('./config/constants');     // 로스트아크 API 상수
+const cacheManager = require('./config/cache-manager');    // 캐시 매니저
 
 const app = express();
 const PORT = process.env.PORT || 1707;  // 환경변수 또는 기본 포트 1707
@@ -107,94 +108,10 @@ app.get('/', (req, res) => {
 app.get('/api/config', (req, res) => {
     res.json({
         success: true,
-        apiKey: LOSTARK_API.API_KEY
+        apiKey: LOSTARK_API.getRandomApiKey()
     });
 });
 
-/**
- * OCR 분석 API 엔드포인트
- * 
- * POST /api/ocr
- * - 이미지 파일을 업로드받아 Python OCR 스크립트로 분석
- * - 분석 결과를 JSON 형태로 반환
- * 
- * @param {File} image - 분석할 이미지 파일 (multipart/form-data)
- * @returns {Object} 분석 결과 JSON
- */
-app.post('/api/ocr', upload.single('image'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: '이미지 파일이 필요합니다.' });
-    }
-
-    const imagePath = req.file.path;
-    const pythonScript = path.join(__dirname, 'simple_ocr.py');
-
-    // Python 스크립트 실행
-    const pythonProcess = spawn('python', [pythonScript, imagePath]);
-
-    let result = '';
-    let error = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-        result += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-        error += data.toString();
-    });
-
-    pythonProcess.on('close', (code) => {
-        // 임시 파일 삭제
-        fs.unlink(imagePath, (err) => {
-            if (err) console.error('파일 삭제 실패:', err);
-        });
-
-        console.log(`Python 스크립트 종료 코드: ${code}`);
-        console.log('Python stdout:', result);
-        console.log('Python stderr:', error);
-
-        if (code !== 0) {
-            console.error('Python 스크립트 오류:', error);
-
-            // Python에서 JSON 에러를 출력했는지 확인
-            try {
-                const errorResult = JSON.parse(result);
-                return res.status(500).json(errorResult);
-            } catch (e) {
-                return res.status(500).json({
-                    success: false,
-                    error: 'OCR 처리 중 오류가 발생했습니다.',
-                    details: error,
-                    pythonOutput: result
-                });
-            }
-        }
-
-        try {
-            if (!result.trim()) {
-                return res.status(500).json({
-                    success: false,
-                    error: 'Python 스크립트에서 결과를 반환하지 않았습니다.',
-                    pythonOutput: result,
-                    pythonError: error
-                });
-            }
-
-            const ocrResult = JSON.parse(result);
-            // OCR 스크립트에서 이미 성공 여부와 HTML 테이블을 포함한 구조를 반환
-            res.json(ocrResult);
-        } catch (parseError) {
-            console.error('JSON 파싱 오류:', parseError);
-            console.error('원본 결과:', result);
-            res.status(500).json({
-                success: false,
-                error: 'OCR 결과 처리 중 오류가 발생했습니다.',
-                parseError: parseError.message,
-                rawResult: result
-            });
-        }
-    });
-});
 
 /**
  * 로스트아크 API 테스트 엔드포인트
@@ -216,17 +133,17 @@ app.post('/api/lostark/test', async (req, res) => {
     try {
         // 테스트용 캐릭터 "다시시작하는창술사"로 형제 캐릭터 목록 조회
         const testCharacterName = '다시시작하는창술사';
-        
+
         // 1단계: 형제 캐릭터 목록 조회
         const siblingsUrl = `${LOSTARK_API.BASE_URL}/characters/${encodeURIComponent(testCharacterName)}/siblings`;
-        
+
         console.log(`📋 API 테스트: ${testCharacterName} 형제 캐릭터 조회 중...`);
         console.log(`URL: ${siblingsUrl}`);
 
         const siblingsResponse = await fetch(siblingsUrl, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
+                'Authorization': `Bearer ${LOSTARK_API.getRandomApiKey()}`,
                 'Accept': 'application/json'
             }
         });
@@ -235,7 +152,7 @@ app.post('/api/lostark/test', async (req, res) => {
 
         if (!siblingsResponse.ok) {
             console.error(`❌ API 테스트 실패:`, siblingsResponse.status, siblingsData);
-            
+
             let errorMessage = 'API 연결에 실패했습니다.';
             if (siblingsResponse.status === 429) {
                 errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
@@ -266,7 +183,7 @@ app.post('/api/lostark/test', async (req, res) => {
                     const profileResponse = await fetch(profileUrl, {
                         method: 'GET',
                         headers: {
-                            'Authorization': `Bearer ${apiKey}`,
+                            'Authorization': `Bearer ${LOSTARK_API.getRandomApiKey()}`,
                             'Accept': 'application/json'
                         }
                     });
@@ -350,20 +267,15 @@ app.post('/api/lostark/connect', async (req, res) => {
 });
 
 /**
- * 개별 캐릭터 검색 API 엔드포인트
+ * 개별 캐릭터 검색 API 엔드포인트 (캐싱 적용)
  * 
  * POST /api/lostark/character
  * - 특정 캐릭터 이름으로 형제 캐릭터 목록 및 프로필 정보 조회
+ * - 24시간 캐시 적용으로 API 호출 최적화
  */
 app.post('/api/lostark/character', async (req, res) => {
     const { apiKey, characterName } = req.body;
-
-    if (!apiKey) {
-        return res.status(400).json({
-            success: false,
-            error: 'API 키가 필요합니다.'
-        });
-    }
+    const startTime = Date.now();
 
     if (!characterName) {
         return res.status(400).json({
@@ -373,80 +285,170 @@ app.post('/api/lostark/character', async (req, res) => {
     }
 
     try {
-        // 1단계: 형제 캐릭터 목록 조회
-        const siblingsUrl = `${LOSTARK_API.BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
-        
-        console.log(`📋 ${characterName} 형제 캐릭터 조회 중...`);
-        console.log(`URL: ${siblingsUrl}`);
+        // 1단계: 캐시된 형제 캐릭터 목록 확인
+        let siblingsData = await cacheManager.getCachedSiblings(characterName);
+        let fromCache = true;
 
-        const siblingsResponse = await fetch(siblingsUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        const siblingsData = await siblingsResponse.json();
-
-        if (!siblingsResponse.ok) {
-            console.error(`❌ ${characterName} 형제 캐릭터 조회 실패:`, siblingsResponse.status, siblingsData);
+        if (siblingsData.length === 0) {
+            fromCache = false;
+            console.log(`🔍 ${characterName} 형제 캐릭터 API 조회 중...`);
             
-            let errorMessage = '캐릭터를 찾을 수 없습니다.';
-            if (siblingsResponse.status === 404) {
-                errorMessage = '존재하지 않는 캐릭터입니다.';
-            } else if (siblingsResponse.status === 429) {
-                errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
-            } else if (siblingsResponse.status === 401) {
-                errorMessage = 'API 키가 유효하지 않습니다.';
+            // API 호출
+            const siblingsUrl = `${LOSTARK_API.BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
+            const apiKey = LOSTARK_API.getRandomApiKey();
+            const keyIndex = LOSTARK_API.API_KEYS.indexOf(apiKey) + 1;
+
+            const siblingsResponse = await fetch(siblingsUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            const responseTime = Date.now() - startTime;
+            siblingsData = await siblingsResponse.json();
+
+            // API 호출 로그 기록
+            await cacheManager.logApiCall(
+                '/characters/siblings', 
+                keyIndex, 
+                characterName, 
+                siblingsResponse.ok, 
+                responseTime,
+                siblingsResponse.ok ? null : JSON.stringify(siblingsData)
+            );
+
+            if (!siblingsResponse.ok) {
+                console.error(`❌ ${characterName} 형제 캐릭터 조회 실패:`, siblingsResponse.status, siblingsData);
+
+                let errorMessage = '캐릭터를 찾을 수 없습니다.';
+                if (siblingsResponse.status === 404) {
+                    errorMessage = '존재하지 않는 캐릭터입니다.';
+                } else if (siblingsResponse.status === 429) {
+                    errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
+                } else if (siblingsResponse.status === 401) {
+                    errorMessage = 'API 키가 유효하지 않습니다.';
+                }
+
+                return res.status(siblingsResponse.status).json({
+                    success: false,
+                    error: errorMessage,
+                    details: siblingsData
+                });
             }
 
-            return res.status(siblingsResponse.status).json({
-                success: false,
-                error: errorMessage,
-                details: siblingsData
-            });
+            // 캐시에 저장
+            await cacheManager.cacheSiblings(characterName, siblingsData);
+        } else {
+            // DB 형태를 API 형태로 변환
+            siblingsData = siblingsData.map(row => ({
+                ServerName: row.server_name,
+                CharacterName: row.character_name,
+                CharacterLevel: row.character_level,
+                CharacterClassName: row.character_class,
+                ItemAvgLevel: row.item_avg_level
+            }));
         }
 
-        console.log(`✅ ${characterName} 형제 캐릭터 목록:`, siblingsData);
+        console.log(`✅ ${characterName} 형제 캐릭터 ${siblingsData.length}명 (캐시: ${fromCache})`);
 
-        // 2단계: 각 캐릭터의 프로필 정보 조회
+        // 2단계: 각 캐릭터의 프로필 정보 조회 (캐시 우선)
         let profileResults = [];
         if (Array.isArray(siblingsData) && siblingsData.length > 0) {
             console.log(`=== ${siblingsData.length}명의 캐릭터 프로필 조회 시작 ===`);
 
-            for (const character of siblingsData) {
+            // 배치 처리를 위한 딜레이 설정
+            const batchDelay = await cacheManager.getSetting('batch_processing_delay_ms', 1000);
+
+            for (let i = 0; i < siblingsData.length; i++) {
+                const character = siblingsData[i];
+                
                 try {
-                    const profileUrl = `${LOSTARK_API.BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
-                    console.log(`📋 ${character.CharacterName} 프로필 조회 중...`);
-
-                    const profileResponse = await fetch(profileUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${apiKey}`,
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    const profileData = await profileResponse.json();
-
-                    if (profileResponse.ok) {
-                        console.log(`✅ ${character.CharacterName} 프로필:`, profileData);
+                    // 캐시된 프로필 확인
+                    let cachedProfile = await cacheManager.getCachedProfile(character.CharacterName);
+                    
+                    if (cachedProfile) {
+                        // 캐시에서 가져온 경우
                         profileResults.push({
                             character: character.CharacterName,
                             success: true,
-                            data: profileData
+                            data: {
+                                CharacterImage: cachedProfile.character_image,
+                                ExpeditionLevel: cachedProfile.expedition_level,
+                                PvpGradeName: cachedProfile.pvp_grade,
+                                TownLevel: cachedProfile.town_level,
+                                TownName: cachedProfile.town_name,
+                                Title: cachedProfile.title,
+                                GuildName: cachedProfile.guild_name,
+                                GuildMemberGrade: cachedProfile.guild_member_grade,
+                                UsingSkillPoint: cachedProfile.using_skill_point,
+                                TotalSkillPoint: cachedProfile.total_skill_point,
+                                CombatPower: cachedProfile.combat_power,
+                                ServerName: cachedProfile.server_name,
+                                CharacterLevel: cachedProfile.character_level,
+                                CharacterClassName: cachedProfile.character_class,
+                                ItemAvgLevel: cachedProfile.item_avg_level
+                            }
                         });
+                        console.log(`📋 ${character.CharacterName} 프로필 (캐시)`);
                     } else {
-                        console.error(`❌ ${character.CharacterName} 프로필 조회 실패:`, profileResponse.status, profileData);
-                        profileResults.push({
-                            character: character.CharacterName,
-                            success: false,
-                            error: profileData
+                        // API에서 가져와야 하는 경우
+                        const profileUrl = `${LOSTARK_API.BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
+                        const apiKey = LOSTARK_API.getRandomApiKey();
+                        const keyIndex = LOSTARK_API.API_KEYS.indexOf(apiKey) + 1;
+                        
+                        console.log(`🔍 ${character.CharacterName} 프로필 API 조회 중...`);
+
+                        const profileStartTime = Date.now();
+                        const profileResponse = await fetch(profileUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Accept': 'application/json'
+                            }
                         });
+
+                        const profileData = await profileResponse.json();
+                        const profileResponseTime = Date.now() - profileStartTime;
+
+                        // API 호출 로그 기록
+                        await cacheManager.logApiCall(
+                            '/armories/characters/profiles', 
+                            keyIndex, 
+                            character.CharacterName, 
+                            profileResponse.ok, 
+                            profileResponseTime,
+                            profileResponse.ok ? null : JSON.stringify(profileData)
+                        );
+
+                        if (profileResponse.ok) {
+                            console.log(`✅ ${character.CharacterName} 프로필 (API)`);
+                            
+                            // 캐시에 저장
+                            await cacheManager.cacheProfile(character.CharacterName, profileData);
+                            
+                            profileResults.push({
+                                character: character.CharacterName,
+                                success: true,
+                                data: profileData
+                            });
+                        } else {
+                            console.error(`❌ ${character.CharacterName} 프로필 조회 실패:`, profileResponse.status, profileData);
+                            profileResults.push({
+                                character: character.CharacterName,
+                                success: false,
+                                error: profileData
+                            });
+                        }
+
+                        // 배치 처리 딜레이 (API 제한 방지)
+                        if (i < siblingsData.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, batchDelay));
+                        }
                     }
                 } catch (profileError) {
-                    console.error(`❌ ${character.CharacterName} 프로필 API 호출 오류:`, profileError.message);
+                    console.error(`❌ ${character.CharacterName} 프로필 처리 오류:`, profileError.message);
                     profileResults.push({
                         character: character.CharacterName,
                         success: false,
@@ -458,11 +460,18 @@ app.post('/api/lostark/character', async (req, res) => {
             console.log(`=== 모든 캐릭터 프로필 조회 완료 ===`);
         }
 
+        // 캐시 통계 정보 추가
+        const cacheStats = await cacheManager.getCacheStats();
+
         res.json({
             success: true,
             result: siblingsData,
             profiles: profileResults,
-            message: '캐릭터 검색 성공'
+            message: '캐릭터 검색 성공',
+            cache: {
+                fromCache: fromCache,
+                stats: cacheStats
+            }
         });
 
     } catch (error) {
@@ -470,6 +479,69 @@ app.post('/api/lostark/character', async (req, res) => {
         res.status(500).json({
             success: false,
             error: '캐릭터 검색 중 서버 오류가 발생했습니다.',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * 캐시 통계 조회 API
+ * 
+ * GET /api/cache/stats
+ * - 캐시 사용량 및 API 호출 통계 조회
+ */
+app.get('/api/cache/stats', async (req, res) => {
+    try {
+        const stats = await cacheManager.getCacheStats();
+        
+        res.json({
+            success: true,
+            stats: {
+                ...stats,
+                cacheEnabled: true,
+                cacheDuration: '24시간',
+                apiKeysCount: LOSTARK_API.API_KEYS.length,
+                maxCallsPerHour: LOSTARK_API.API_KEYS.length * 100
+            }
+        });
+    } catch (error) {
+        console.error('캐시 통계 조회 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: '캐시 통계 조회 실패',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * 캐시 초기화 API
+ * 
+ * DELETE /api/cache/clear
+ * - 캐시된 데이터 초기화
+ */
+app.delete('/api/cache/clear', async (req, res) => {
+    try {
+        const { type = 'all' } = req.query;
+        
+        if (type === 'all' || type === 'siblings') {
+            await cacheManager.pool.execute('DELETE FROM character_siblings');
+        }
+        
+        if (type === 'all' || type === 'profiles') {
+            await cacheManager.pool.execute('DELETE FROM character_profiles');
+        }
+        
+        res.json({
+            success: true,
+            message: `캐시 초기화 완료: ${type}`,
+            cleared: type
+        });
+    } catch (error) {
+        console.error('캐시 초기화 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: '캐시 초기화 실패',
             details: error.message
         });
     }

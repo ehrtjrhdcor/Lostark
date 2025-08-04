@@ -20,6 +20,7 @@
 /* API 키 입력 섹션 */
 .api-key-section {
     margin-bottom: 30px;
+    display: none;
 }
 
 .api-input-box {
@@ -70,14 +71,14 @@
     border-color: #2980b9;
     background: #f0f8ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .character-card img {
     max-width: 150px;
     max-height: 200px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .character-card h4 {
@@ -122,7 +123,7 @@
     border-color: #2980b9;
     background: #f0f8ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .raid-option h4 {

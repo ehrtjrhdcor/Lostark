@@ -138,110 +138,102 @@ function testAboutLostArkAPI(apiKey) {
 }
 
 /**
- * 개별 캐릭터 검색
+ * 개별 캐릭터 검색 (about 페이지)
+ * 1. 형제 캐릭터 목록 조회
+ * 2. 각 캐릭터 프로필 순차 조회 및 실시간 표시
  * @param {string} characterName - 검색할 캐릭터명
  */
-function searchCharacter(characterName) {
+async function searchCharacter(characterName) {
     const characterSearchResult = document.getElementById('characterSearchResult');
     characterSearchResult.style.display = 'block';
     characterSearchResult.innerHTML = `
         <div class="loading">
             <div class="loading-spinner"></div>
-            <h3>캐릭터 검색 중...</h3>
-            <p>"${characterName}" 캐릭터의 형제 캐릭터 목록을 가져오고 있습니다.</p>
+            <h3>형제 캐릭터 목록 조회 중...</h3>
+            <p>"${characterName}" 캐릭터의 형제 캐릭터를 찾고 있습니다.</p>
         </div>
     `;
 
-    // 추가 로딩 단계를 위한 변수
-    let currentStep = 1;
-
-    // 1단계: 형제 캐릭터 목록 조회
-    fetch(getApiEndpoint('character'), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: getRequestBody('character', window.currentApiKey, characterName)
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('서버에서 JSON이 아닌 응답을 받았습니다.');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // 형제 캐릭터 목록을 찾았으면 프로필 로딩 메시지 표시
-                if (data.result && data.result.length > 0) {
-                    characterSearchResult.innerHTML = `
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            <h3>캐릭터 프로필 로딩 중...</h3>
-                            <p>${data.result.length}명의 형제 캐릭터 정보를 가져오고 있습니다.</p>
-                            <div style="margin-top: 15px;">
-                                <div style="background: #f0f0f0; height: 8px; border-radius: 4px; overflow: hidden;">
-                                    <div id="profileLoadingBar" style="background: #3498db; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
-                                </div>
-                                <p style="margin-top: 10px; font-size: 14px; color: #666;">
-                                    <span id="profileProgress">0</span> / ${data.result.length} 완료
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // 프로필 로딩 진행상황 시뮬레이션
-                    simulateProfileLoading(data.result.length, data.profiles);
-                } else {
-                    showCharacterSearchError('형제 캐릭터를 찾을 수 없습니다.');
-                }
-            } else {
-                showCharacterSearchError(data.error || '캐릭터를 찾을 수 없습니다.');
-            }
-        })
-        .catch(error => {
-            console.error('캐릭터 검색 오류:', error);
-            showCharacterSearchError('서버와 연결할 수 없습니다.');
+    try {
+        // 1단계: 형제 캐릭터 목록 조회
+        const siblingsResponse = await fetch(getApiEndpoint('character_siblings'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: getRequestBody('character_siblings', window.currentApiKey, characterName)
         });
+
+        if (!siblingsResponse.ok) {
+            const errorData = await siblingsResponse.json();
+            throw new Error(errorData.error || '형제 캐릭터 목록을 가져오는데 실패했습니다.');
+        }
+
+        const siblingsData = await siblingsResponse.json();
+
+        if (!siblingsData.success || !siblingsData.result || siblingsData.result.length === 0) {
+            showCharacterSearchError('형제 캐릭터를 찾을 수 없습니다.');
+            return;
+        }
+
+        const characters = siblingsData.result;
+        const totalCount = characters.length;
+
+        // 2단계: 프로필 순차 조회를 위한 UI 설정
+        characterSearchResult.innerHTML = `
+            <div class="loading">
+                <h3>캐릭터 프로필 로딩 중...</h3>
+                <p>${totalCount}명의 형제 캐릭터 정보를 가져오고 있습니다.</p>
+                <div class="progress-bar-container">
+                    <div id="profileLoadingBar" class="progress-bar"></div>
+                </div>
+                <p class="progress-text">
+                    <span id="profileProgress">0</span> / ${totalCount} 완료
+                </p>
+            </div>
+            <div id="characterCardContainer" class="character-card-container"></div>
+        `;
+
+        const progressBar = document.getElementById('profileLoadingBar');
+        const progressText = document.getElementById('profileProgress');
+        const characterCardContainer = document.getElementById('characterCardContainer');
+
+        // 각 캐릭터 프로필 순차 조회
+        for (let i = 0; i < totalCount; i++) {
+            const character = characters[i];
+            try {
+                const profileResponse = await fetch(getApiEndpoint('character_profile'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: getRequestBody('character_profile', window.currentApiKey, character.CharacterName)
+                });
+
+                const profileData = await profileResponse.json();
+                appendCharacterCardForAbout(characterCardContainer, profileData);
+
+            } catch (error) {
+                console.error(`${character.CharacterName} 프로필 조회 오류:`, error);
+                const errorProfile = {
+                    character: character.CharacterName,
+                    success: false,
+                    error: '프로필 조회 실패'
+                };
+                appendCharacterCardForAbout(characterCardContainer, errorProfile);
+            }
+
+            // 진행률 업데이트
+            const currentProgress = i + 1;
+            progressBar.style.width = `${(currentProgress / totalCount) * 100}%`;
+            progressText.textContent = currentProgress;
+        }
+
+        // 로딩 완료 후 로딩 UI 숨기기
+        const loadingDiv = characterSearchResult.querySelector('.loading');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+
+    } catch (error) {
+        console.error('캐릭터 검색 오류:', error);
+        showCharacterSearchError(error.message || '서버와 연결할 수 없습니다.');
+    }
 }
 
-/**
- * 프로필 로딩 진행상황 시뮬레이션
- * @param {number} totalCount - 전체 캐릭터 수
- * @param {Array} profiles - 프로필 데이터
- */
-function simulateProfileLoading(totalCount, profiles) {
-    const progressBar = document.getElementById('profileLoadingBar');
-    const progressText = document.getElementById('profileProgress');
-    let currentProgress = 0;
-    
-    // 서버에서 실제 처리 시간을 고려한 진행률 업데이트
-    const updateInterval = 300; // 300ms마다 업데이트
-    const totalTime = Math.min(totalCount * 200, 2000); // 최대 2초
-    const incrementPerUpdate = (100 / (totalTime / updateInterval));
-    
-    const progressInterval = setInterval(() => {
-        currentProgress += incrementPerUpdate;
-        const displayProgress = Math.min(Math.floor(currentProgress), totalCount);
-        
-        if (progressBar && progressText) {
-            progressBar.style.width = `${(displayProgress / totalCount) * 100}%`;
-            progressText.textContent = displayProgress;
-        }
-        
-        if (currentProgress >= totalCount) {
-            clearInterval(progressInterval);
-            // 로딩 완료 후 잠시 대기 후 결과 표시
-            setTimeout(() => {
-                if (profiles && profiles.length > 0) {
-                    displayCharacterImagesForAbout(profiles);
-                } else {
-                    showCharacterSearchError('캐릭터 프로필을 가져올 수 없습니다.');
-                }
-            }, 500);
-        }
-    }, updateInterval);
-}
