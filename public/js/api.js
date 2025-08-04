@@ -57,9 +57,9 @@ function getRequestBody(action, apiKey, characterName = null) {
         window.location.hostname.startsWith('172.');
 
     if (isVercel) {
+        // Vercel에서는 서버에서 API 키를 관리하므로 apiKey를 보내지 않음
         return JSON.stringify({
             action: action,
-            apiKey: apiKey,
             characterName: characterName
         });
     } else if (isLocal) {
@@ -72,7 +72,6 @@ function getRequestBody(action, apiKey, characterName = null) {
         // 기타 환경은 Vercel 방식 사용
         return JSON.stringify({
             action: action,
-            apiKey: apiKey,
             characterName: characterName
         });
     }
@@ -86,12 +85,14 @@ function getRequestBody(action, apiKey, characterName = null) {
 function testLostArkAPI(apiKey, characterName) {
     showApiLoading();
 
-    fetch(getApiEndpoint('character'), {
+    // Vercel 환경에서는 API 키를 보내지 않음
+    const action = 'test'; // character 대신 test 사용
+    fetch(getApiEndpoint(action), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: getRequestBody('character', apiKey, characterName)
+        body: getRequestBody(action, apiKey, characterName)
     })
         .then(response => {
             if (!response.ok) {
@@ -159,7 +160,7 @@ async function searchCharacter(characterName) {
         const siblingsResponse = await fetch(getApiEndpoint('character_siblings'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: getRequestBody('character_siblings', window.currentApiKey, characterName)
+            body: getRequestBody('character_siblings', window.currentApiKey || '', characterName)
         });
 
         if (!siblingsResponse.ok) {
@@ -203,7 +204,7 @@ async function searchCharacter(characterName) {
                 const profileResponse = await fetch(getApiEndpoint('character_profile'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: getRequestBody('character_profile', window.currentApiKey, character.CharacterName)
+                    body: getRequestBody('character_profile', window.currentApiKey || '', character.CharacterName)
                 });
 
                 const profileData = await profileResponse.json();

@@ -21,14 +21,21 @@ function initializeEventListeners() {
     const featuresCharacterSearchBtn = document.getElementById('featuresCharacterSearchBtn');
     
     // features 페이지 캐릭터 검색 버튼
-    if (featuresCharacterSearchBtn && featuresCharacterSearchInput && apiKeyInput) {
+    if (featuresCharacterSearchBtn && featuresCharacterSearchInput) {
         featuresCharacterSearchBtn.addEventListener('click', function () {
-            const apiKey = apiKeyInput.value.trim();
             const characterName = featuresCharacterSearchInput.value.trim();
             
-            if (!apiKey) {
-                alert('API 키를 입력해주세요.');
-                return;
+            // Vercel 환경 확인
+            const isVercel = window.location.hostname.includes('vercel') ||
+                window.location.hostname.includes('netlify');
+            
+            if (!isVercel) {
+                // 로컬 환경에서만 API 키 필요
+                const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+                if (!apiKey) {
+                    alert('API 키를 입력해주세요.');
+                    return;
+                }
             }
             
             if (!characterName) {
@@ -36,6 +43,7 @@ function initializeEventListeners() {
                 return;
             }
             
+            const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
             testLostArkAPI(apiKey, characterName);
         });
 
@@ -60,23 +68,28 @@ function initializeEventListeners() {
     const characterSearchBtn = document.getElementById('characterSearchBtn');
 
     // 캐릭터 검색 버튼
-    if (characterSearchBtn && characterSearchInput && aboutApiKeyInput) {
+    if (characterSearchBtn && characterSearchInput) {
         characterSearchBtn.addEventListener('click', function () {
-            const apiKey = aboutApiKeyInput.value.trim();
             const characterName = characterSearchInput.value.trim();
             
-            if (!apiKey) {
-                alert('API 키를 입력해주세요.');
-                return;
+            // Vercel 환경 확인
+            const isVercel = window.location.hostname.includes('vercel') ||
+                window.location.hostname.includes('netlify');
+            
+            if (!isVercel && aboutApiKeyInput) {
+                // 로컬 환경에서만 API 키 필요
+                const apiKey = aboutApiKeyInput.value.trim();
+                if (!apiKey) {
+                    alert('API 키를 입력해주세요.');
+                    return;
+                }
+                window.currentApiKey = apiKey;
             }
             
             if (!characterName) {
                 alert('캐릭터명을 입력해주세요.');
                 return;
             }
-            
-            // API 키를 전역 변수에 저장
-            window.currentApiKey = apiKey;
             
             searchCharacter(characterName);
         });
