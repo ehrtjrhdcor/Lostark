@@ -309,3 +309,865 @@
     margin: 5px 0 0 0;
     font-size: 14px;
 }
+
+/* 큰 모달 스타일 */
+.modal-content-large {
+    background-color: white;
+    margin: 2% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 95%;
+    max-width: 1400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* 좌우 분할 컨테이너 */
+.modal-split-container {
+    display: flex;
+    gap: 2px;
+    height: calc(90vh - 150px);
+    min-height: 600px;
+}
+
+/* 왼쪽 영역 */
+.modal-left-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+}
+
+/* 오른쪽 영역 */
+.modal-right-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+}
+
+/* 구분선 */
+.modal-divider {
+    width: 2px;
+    background: #ddd;
+    margin: 0 10px;
+}
+
+/* 작은 업로드 영역 */
+.upload-area-small {
+    margin-bottom: 20px;
+}
+
+.upload-box-small {
+    border: 2px dashed #3498db;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    background: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.upload-box-small:hover {
+    border-color: #2980b9;
+    background: #e3f2fd;
+}
+
+.upload-icon-small {
+    font-size: 20px;
+}
+
+.upload-text-small {
+    font-size: 14px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+/* 통계 표 컨테이너 */
+.stats-table-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 통계 표 스타일 */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stats-table td {
+    padding: 12px 15px;
+    border: 1px solid #e0e0e0;
+    vertical-align: middle;
+}
+
+.stats-label {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #2c3e50;
+    width: 25%;
+    font-size: 13px;
+}
+
+.stats-input {
+    width: 25%;
+    padding: 8px;
+}
+
+.stats-input input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.stats-input input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.stats-input input::placeholder {
+    color: #999;
+    font-size: 12px;
+}
+
+/* 오른쪽 컨텐츠 영역 */
+.right-content-area {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+/* 오른쪽 이미지 컨테이너 */
+.right-image-container {
+    text-align: center;
+}
+
+.right-image-container h4 {
+    color: #2c3e50;
+    margin: 0 0 15px 0;
+    font-size: 16px;
+}
+
+.uploaded-file-name {
+    color: #666;
+    font-size: 12px;
+    margin: 0 0 15px 0;
+    font-style: italic;
+}
+
+/* 이미지 표시 영역 */
+.image-display {
+    margin: 20px 0;
+    border: 2px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fafafa;
+}
+
+.skill-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* 스킬 분석 섹션 */
+.skill-analysis-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.skill-analysis-section p {
+    margin: 0 0 15px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.analyze-skill-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.analyze-skill-btn:hover {
+    background: #218838;
+}
+
+/* 드래그오버 효과 */
+.upload-box-small.dragover {
+    border-color: #28a745;
+    background: #d4edda;
+}
+
+/* 스킬 분석 컨테이너 */
+.skill-analysis-container {
+    text-align: center;
+}
+
+.skill-analysis-container h4 {
+    color: #2c3e50;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.skill-count {
+    color: #666;
+    font-size: 12px;
+    margin: 0 0 15px 0;
+    font-style: italic;
+}
+
+.no-data {
+    color: #e74c3c;
+    font-size: 14px;
+    margin: 20px 0;
+    padding: 20px;
+    background: #fff5f5;
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+}
+
+/* 스킬 표 래퍼 */
+.skill-table-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 스킬 표 스타일 */
+.skill-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 12px;
+}
+
+.skill-table thead {
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.skill-table th {
+    padding: 10px 8px;
+    border: 1px solid #e0e0e0;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    font-size: 11px;
+}
+
+.skill-table td {
+    padding: 8px 6px;
+    border: 1px solid #e0e0e0;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* 스킬 행 스타일 */
+.skill-row:hover {
+    background: #f8f9fa;
+}
+
+/* 순위별 하이라이트 */
+.rank-1 {
+    background: #fff3cd !important;
+    border-left: 4px solid #ffc107;
+}
+
+.rank-2 {
+    background: #e2e3e5 !important;
+    border-left: 4px solid #6c757d;
+}
+
+.rank-3 {
+    background: #f8d7da !important;
+    border-left: 4px solid #dc3545;
+}
+
+/* 개별 셀 스타일 */
+.rank-cell {
+    font-weight: bold;
+    color: #495057;
+    width: 40px;
+}
+
+.skill-name {
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: left !important;
+    max-width: 100px;
+    word-wrap: break-word;
+}
+
+.damage-share {
+    font-weight: bold;
+    color: #e74c3c;
+    width: 80px;
+}
+
+.head-back-rate, .crit-rate {
+    color: #28a745;
+    width: 70px;
+}
+
+.usage-count {
+    color: #6c757d;
+    width: 60px;
+}
+
+.damage-info {
+    color: #495057;
+    font-size: 11px;
+    width: 120px;
+    word-wrap: break-word;
+}
+
+/* 반응형 대응 */
+@media (max-width: 768px) {
+    .skill-table {
+        font-size: 10px;
+    }
+    
+    .skill-table th,
+    .skill-table td {
+        padding: 6px 4px;
+    }
+}
+
+/* 모달 푸터 스타일 */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding: 20px 30px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    border-radius: 0 0 15px 15px;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+}
+
+/* 모달 버튼 공통 스타일 */
+.modal-btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 80px;
+}
+
+/* 취소 버튼 */
+.cancel-btn {
+    background: #6c757d;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 저장 버튼 */
+.save-btn {
+    background: #007bff;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+}
+
+/* 저장 중 상태 */
+.save-btn:disabled {
+    background: #17a2b8;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* 큰 모달 높이 조정 */
+.modal-content-large {
+    background-color: white;
+    margin: 2% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 95%;
+    max-width: 1400px;
+    max-height: 90vh;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 모달 헤더 패딩 복원 */
+.modal-content-large .modal-header {
+    padding: 30px 30px 25px 30px;
+    flex-shrink: 0;
+}
+
+/* 모달 분할 컨테이너 높이 조정 */
+.modal-content-large .modal-split-container {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    min-height: 0;
+    padding: 0 30px;
+}
+
+/* 닫기 버튼 위치 조정 */
+.modal-content-large .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.3s;
+    z-index: 30;
+}
+
+/* 저장 피드백 메시지 */
+.save-feedback {
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideInLeft 0.3s ease-out;
+    flex: 1;
+    text-align: center;
+}
+
+.save-feedback.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.save-feedback.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 반응형 모달 푸터 */
+@media (max-width: 768px) {
+    .modal-footer {
+        padding: 15px 20px;
+        gap: 10px;
+    }
+    
+    .modal-btn {
+        padding: 10px 20px;
+        font-size: 13px;
+        min-width: 70px;
+    }
+    
+    .save-feedback {
+        font-size: 12px;
+        padding: 10px 15px;
+    }
+}
+
+/* 게임 관련 스타일 */
+.game-board-container {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.game-board {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e9ecef;
+}
+
+.game-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.game-row:last-child {
+    margin-bottom: 0;
+}
+
+.row-label {
+    width: 50px;
+    text-align: center;
+    font-weight: bold;
+    color: #495057;
+    font-size: 14px;
+}
+
+.game-cell {
+    width: 60px;
+    height: 50px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.game-cell:hover:not(.clicked) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.game-cell.clicked {
+    background: #6c757d;
+    color: white;
+    cursor: not-allowed;
+    border-color: #495057;
+}
+
+.game-cell.good-row:not(.clicked) {
+    background: linear-gradient(135deg, #e8f5e8, #f8fff8);
+    border-color: #28a745;
+}
+
+.game-cell.bad-row:not(.clicked) {
+    background: linear-gradient(135deg, #fce8e8, #fff8f8);
+    border-color: #dc3545;
+}
+
+.game-cell.high-prob:not(.clicked) {
+    background: linear-gradient(135deg, #d4edda, #f8fff8);
+    color: #155724;
+    border-color: #28a745;
+}
+
+.game-cell.medium-prob:not(.clicked) {
+    background: linear-gradient(135deg, #fff3cd, #fffdf8);
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.game-cell.low-prob:not(.clicked) {
+    background: linear-gradient(135deg, #f8d7da, #fff8f8);
+    color: #721c24;
+    border-color: #dc3545;
+}
+
+.game-cell.ai-suggested {
+    animation: pulse 1.5s infinite;
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.game-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 0 5px;
+}
+
+.game-btn.primary {
+    background: #007bff;
+    color: white;
+}
+
+.game-btn.primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.game-btn.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.game-btn.secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+}
+
+.score-display {
+    font-size: 18px;
+    font-weight: bold;
+    color: #495057;
+    margin-left: 15px;
+    padding: 8px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.ai-suggestion {
+    margin: 20px 0;
+    padding: 15px;
+    background: linear-gradient(135deg, #e3f2fd, #f8f9fa);
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.ai-suggestion h4 {
+    margin: 0 0 8px 0;
+    color: #0056b3;
+}
+
+.ai-suggestion p {
+    margin: 0;
+    color: #495057;
+}
+
+.game-log-container {
+    margin-top: 30px;
+}
+
+.game-log-container h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.game-log {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.log-entry {
+    margin-bottom: 5px;
+    padding: 2px 0;
+}
+
+.log-entry .timestamp {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 목표 및 진행상황 스타일 */
+.game-status {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e9ecef;
+}
+
+.goals-container h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+}
+
+.goal-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.goal-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.row-name {
+    font-weight: bold;
+    color: #495057;
+    min-width: 40px;
+}
+
+.goal-text {
+    color: #6c757d;
+    min-width: 100px;
+    font-size: 14px;
+}
+
+.progress-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    transition: width 0.3s ease;
+    border-radius: 10px;
+    width: var(--progress, 0%);
+}
+
+.progress-bar.success::after {
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.progress-bar.warning::after {
+    background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.progress-bar.danger::after {
+    background: linear-gradient(90deg, #dc3545, #e83e8c);
+}
+
+.progress-text {
+    font-size: 12px;
+    font-weight: bold;
+    color: #495057;
+    min-width: 40px;
+    text-align: center;
+}
+
+/* 게임 결과 표시 개선 */
+.game-cell.success {
+    background: #d4edda !important;
+    color: #155724 !important;
+    border-color: #28a745 !important;
+}
+
+.game-cell.failure {
+    background: #f8d7da !important;
+    color: #721c24 !important;
+    border-color: #dc3545 !important;
+}
+
+/* 클릭 불가능한 셀 스타일 */
+.game-cell.disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+    background: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+}
+
+.game-cell.disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 목표 달성 알림 */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #d4edda;
+    color: #155724;
+    padding: 15px 20px;
+    border-radius: 8px;
+    border: 1px solid #c3e6cb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.achievement-notification.all-goals {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

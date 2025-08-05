@@ -56,7 +56,7 @@ function displayCharacterImages(profiles) {
     profiles.forEach((profile, index) => {
         if (profile.success && profile.data && profile.data.CharacterImage) {
             imageHtml += `
-                <div class="character-card" data-character="${profile.character}" data-index="${index}" 
+                <div class="character-card" data-character="${profile.character}" data-class="${profile.data.CharacterClassName || ''}" data-index="${index}" 
                      style="text-align: center; border: 2px solid #3498db; border-radius: 10px; padding: 15px; background: white; cursor: pointer; transition: all 0.3s ease;">
                     <img src="${profile.data.CharacterImage}" 
                          alt="${profile.character}" 
@@ -75,7 +75,7 @@ function displayCharacterImages(profiles) {
             `;
         } else {
             imageHtml += `
-                <div class="character-card" data-character="${profile.character}" data-index="${index}"
+                <div class="character-card" data-character="${profile.character}" data-class="" data-index="${index}"
                      style="text-align: center; border: 2px solid #e74c3c; border-radius: 10px; padding: 15px; background: #fff5f5; cursor: not-allowed; opacity: 0.6;">
                     <div style="width: 150px; height: 150px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
                         <span>이미지 없음</span>
@@ -203,6 +203,10 @@ function addCharacterCardEvents() {
 function addRaidCardEvents(characterName) {
     const raidCards = document.querySelectorAll('.raid-option');
 
+    // 선택된 캐릭터 카드에서 직업 정보 가져오기
+    const selectedCard = document.querySelector(`[data-character="${characterName}"]`);
+    const characterClass = selectedCard ? selectedCard.dataset.class : '';
+
     raidCards.forEach(card => {
         // 기존 이벤트 리스너 제거 (중복 방지)
         card.replaceWith(card.cloneNode(true));
@@ -214,7 +218,7 @@ function addRaidCardEvents(characterName) {
         card.addEventListener('click', function () {
             const raid = card.dataset.raid;
             const difficulty = card.dataset.difficulty;
-            openImageAnalysisModal(characterName, raid, difficulty);
+            openImageAnalysisModal(characterName, raid, difficulty, characterClass);
         });
     });
 }

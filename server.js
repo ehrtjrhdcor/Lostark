@@ -292,7 +292,7 @@ app.post('/api/lostark/character', async (req, res) => {
         if (siblingsData.length === 0) {
             fromCache = false;
             console.log(`🔍 ${characterName} 형제 캐릭터 API 조회 중...`);
-            
+
             // API 호출
             const siblingsUrl = `${LOSTARK_API.BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
             const apiKey = LOSTARK_API.getRandomApiKey();
@@ -311,10 +311,10 @@ app.post('/api/lostark/character', async (req, res) => {
 
             // API 호출 로그 기록
             await cacheManager.logApiCall(
-                '/characters/siblings', 
-                keyIndex, 
-                characterName, 
-                siblingsResponse.ok, 
+                '/characters/siblings',
+                keyIndex,
+                characterName,
+                siblingsResponse.ok,
                 responseTime,
                 siblingsResponse.ok ? null : JSON.stringify(siblingsData)
             );
@@ -363,11 +363,11 @@ app.post('/api/lostark/character', async (req, res) => {
 
             for (let i = 0; i < siblingsData.length; i++) {
                 const character = siblingsData[i];
-                
+
                 try {
                     // 캐시된 프로필 확인
                     let cachedProfile = await cacheManager.getCachedProfile(character.CharacterName);
-                    
+
                     if (cachedProfile) {
                         // 캐시에서 가져온 경우
                         profileResults.push({
@@ -397,7 +397,7 @@ app.post('/api/lostark/character', async (req, res) => {
                         const profileUrl = `${LOSTARK_API.BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
                         const apiKey = LOSTARK_API.getRandomApiKey();
                         const keyIndex = LOSTARK_API.API_KEYS.indexOf(apiKey) + 1;
-                        
+
                         console.log(`🔍 ${character.CharacterName} 프로필 API 조회 중...`);
 
                         const profileStartTime = Date.now();
@@ -414,20 +414,20 @@ app.post('/api/lostark/character', async (req, res) => {
 
                         // API 호출 로그 기록
                         await cacheManager.logApiCall(
-                            '/armories/characters/profiles', 
-                            keyIndex, 
-                            character.CharacterName, 
-                            profileResponse.ok, 
+                            '/armories/characters/profiles',
+                            keyIndex,
+                            character.CharacterName,
+                            profileResponse.ok,
                             profileResponseTime,
                             profileResponse.ok ? null : JSON.stringify(profileData)
                         );
 
                         if (profileResponse.ok) {
                             console.log(`✅ ${character.CharacterName} 프로필 (API)`);
-                            
+
                             // 캐시에 저장
                             await cacheManager.cacheProfile(character.CharacterName, profileData);
-                            
+
                             profileResults.push({
                                 character: character.CharacterName,
                                 success: true,
@@ -493,7 +493,7 @@ app.post('/api/lostark/character', async (req, res) => {
 app.get('/api/cache/stats', async (req, res) => {
     try {
         const stats = await cacheManager.getCacheStats();
-        
+
         res.json({
             success: true,
             stats: {
@@ -523,15 +523,15 @@ app.get('/api/cache/stats', async (req, res) => {
 app.delete('/api/cache/clear', async (req, res) => {
     try {
         const { type = 'all' } = req.query;
-        
+
         if (type === 'all' || type === 'siblings') {
             await cacheManager.pool.execute('DELETE FROM character_siblings');
         }
-        
+
         if (type === 'all' || type === 'profiles') {
             await cacheManager.pool.execute('DELETE FROM character_profiles');
         }
-        
+
         res.json({
             success: true,
             message: `캐시 초기화 완료: ${type}`,

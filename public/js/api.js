@@ -19,7 +19,7 @@ function getApiEndpoint(action) {
     // Vercel 배포 환경인지 확인 (도메인에 vercel이 포함되어 있으면)
     const isVercel = window.location.hostname.includes('vercel') ||
         window.location.hostname.includes('netlify');
-    
+
     // 로컬 환경 확인 (localhost, 127.0.0.1, 또는 192.168.x.x 대역)
     const isLocal = window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1' ||
@@ -49,7 +49,7 @@ function getApiEndpoint(action) {
 function getRequestBody(action, apiKey, characterName = null) {
     const isVercel = window.location.hostname.includes('vercel') ||
         window.location.hostname.includes('netlify');
-    
+
     const isLocal = window.location.hostname === 'localhost' ||
         window.location.hostname === '127.0.0.1' ||
         window.location.hostname.startsWith('192.168.') ||
@@ -86,7 +86,7 @@ function testLostArkAPI(apiKey, characterName) {
     showApiLoading();
 
     // Vercel 환경에서는 API 키를 보내지 않음
-    const action = 'test'; // character 대신 test 사용
+    const action = 'character'; // character 대신 test 사용
     fetch(getApiEndpoint(action), {
         method: 'POST',
         headers: {
