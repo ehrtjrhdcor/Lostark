@@ -1,0 +1,53 @@
+=== 게임 AI 학습 데이터 분석 리포트 ===
+생성 시간: 2025-08-06 15:15:08
+
+1. 기본 통계
+  총 레코드 수: 1,200개
+  총 게임 수: 40개
+  평균 게임 길이: 30.0 스텝
+
+2. 전략별 통계
+              game_won      final_score step
+                 count mean        mean  max
+strategy_type                               
+optimal            843  0.0      -0.605   29
+random             357  0.0       2.101   29
+
+3. 승리 조건별 달성률
+  조건 1: nan
+  조건 2: nan
+  조건 3: nan
+  조건 4: nan
+
+4. 행별 성과 분석
+  행 1 평균 성공수: 3.04
+  행 2 평균 성공수: 1.59
+  행 3 평균 성공수: 3.40
+
+5. 승리와 상관관계가 높은 특징들
+  row_0_success: nan
+  row_1_success: nan
+  row_2_success: nan
+  row_0_remaining: nan
+  row_1_remaining: nan
+  row_2_remaining: nan
+  row_0_avg_prob: nan
+  row_1_avg_prob: nan
+  row_2_avg_prob: nan
+  current_score: nan
+
+6. 데이터 품질
+  결측치 수: 0
+  중복 레코드 수: 0
+
+7. 행동 라벨 분포 (상위 10개)
+  행1-열1 (라벨0): 40회
+  행3-열1 (라벨20): 40회
+  행3-열2 (라벨21): 40회
+  행3-열3 (라벨22): 40회
+  행3-열4 (라벨23): 40회
+  행3-열5 (라벨24): 40회
+  행3-열6 (라벨25): 40회
+  행3-열7 (라벨26): 40회
+  행3-열8 (라벨27): 40회
+  행1-열2 (라벨1): 40회

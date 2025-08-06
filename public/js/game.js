@@ -19,12 +19,14 @@ class MLGame {
         this.aiSuggestionText = document.getElementById('aiSuggestionText');
         
         this.newGameBtn = document.getElementById('newGameBtn');
+        this.undoBtn = document.getElementById('undoBtn');
         this.aiSuggestionBtn = document.getElementById('aiSuggestionBtn');
         this.autoPlayBtn = document.getElementById('autoPlayBtn');
     }
     
     bindEvents() {
         this.newGameBtn?.addEventListener('click', () => this.startNewGame());
+        this.undoBtn?.addEventListener('click', () => this.undoLastMove());
         this.aiSuggestionBtn?.addEventListener('click', () => this.getAISuggestion());
         this.autoPlayBtn?.addEventListener('click', () => this.autoPlay());
     }
@@ -50,6 +52,7 @@ class MLGame {
                 this.isGameActive = true;
                 this.renderGameBoard();
                 this.updateScore();
+                this.updateUndoButton();
                 this.logMessage('새 게임이 시작되었습니다!');
                 this.hideAISuggestion();
             } else {
@@ -58,6 +61,47 @@ class MLGame {
         } catch (error) {
             this.logMessage(`네트워크 오류: ${error.message}`);
             console.error('Error starting new game:', error);
+        }
+    }
+    
+    async undoLastMove() {
+        if (!this.isGameActive || !this.gameState?.can_undo) {
+            this.logMessage('되돌릴 수 없습니다.');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${this.apiUrl}/undo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.state;
+                this.renderGameBoard();
+                this.updateScore();
+                this.updateUndoButton();
+                this.hideAISuggestion();
+                this.logMessage(`되돌리기 완료: ${data.message}`);
+            } else {
+                this.logMessage(`되돌리기 실패: ${data.error}`);
+            }
+        } catch (error) {
+            this.logMessage(`네트워크 오류: ${error.message}`);
+            console.error('Error undoing move:', error);
+        }
+    }
+    
+    updateUndoButton() {
+        if (this.undoBtn && this.gameState) {
+            this.undoBtn.disabled = !this.gameState.can_undo || !this.isGameActive;
         }
     }
     
@@ -261,6 +305,7 @@ class MLGame {
                 
                 this.renderGameBoard();
                 this.updateScore();
+                this.updateUndoButton();
                 this.hideAISuggestion();
             } else {
                 this.logMessage(`오류: ${data.error}`);
@@ -337,6 +382,7 @@ class MLGame {
                 
                 this.renderGameBoard();
                 this.updateScore();
+                this.updateUndoButton();
                 this.hideAISuggestion();
             } else {
                 this.logMessage(`AI 자동 플레이 실패: ${data.error}`);

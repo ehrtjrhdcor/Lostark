@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from typing import List, Tuple, Dict
+import copy
 
 class GameEnvironment:
     def __init__(self):
@@ -17,14 +18,23 @@ class GameEnvironment:
         self.results = [[None for _ in range(self.cols)] for _ in range(self.rows)]
         # 각 행별 성공 횟수
         self.success_counts = [0, 0, 0]
-        # 게임 목표 (행별 성공 목표)
-        self.goals = {
-            'row_0': {'min': 7, 'max': 9},  # 1행: 7-9개 성공
-            'row_1': {'min': 6, 'max': 10}, # 2행: 6-10개 성공  
-            'row_2': {'min': 0, 'max': 5}   # 3행: 0-5개 성공
-        }
+        # 게임 목표 - 4가지 승리 조건 중 하나만 만족하면 됨
+        self.victory_conditions = [
+            # 조건 1: 행1(10개) + 행2(6개이상) + 행3(4개이하)
+            {'row_0': {'min': 10, 'max': 10}, 'row_1': {'min': 6, 'max': 10}, 'row_2': {'min': 0, 'max': 4}},
+            # 조건 2: 행1(9개이상) + 행2(7개이상) + 행3(4개이하)  
+            {'row_0': {'min': 9, 'max': 10}, 'row_1': {'min': 7, 'max': 10}, 'row_2': {'min': 0, 'max': 4}},
+            # 조건 3: 행1(7개이상) + 행2(9개이상) + 행3(4개이하)
+            {'row_0': {'min': 7, 'max': 10}, 'row_1': {'min': 9, 'max': 10}, 'row_2': {'min': 0, 'max': 4}},
+            # 조건 4: 행1(6개이상) + 행2(10개) + 행3(4개이하)
+            {'row_0': {'min': 6, 'max': 10}, 'row_1': {'min': 10, 'max': 10}, 'row_2': {'min': 0, 'max': 4}}
+        ]
+        # 기존 호환성을 위한 기본 목표 (조건 2 사용)
+        self.goals = self.victory_conditions[1]
         self.score = 0
         self.game_over = False
+        # 게임 상태 히스토리 (되돌리기용)
+        self.history = []
     
     def get_available_positions(self) -> List[Tuple[int, int]]:
         """클릭 가능한 위치들 반환 (각 행의 맨 왼쪽 미클릭 칸만)"""
@@ -36,6 +46,42 @@ class GameEnvironment:
                     break  # 각 행에서 첫 번째 미클릭 칸만 추가
         return available
     
+    def save_state(self):
+        """현재 게임 상태를 히스토리에 저장"""
+        state = {
+            'clicked': copy.deepcopy(self.clicked),
+            'probabilities': copy.deepcopy(self.probabilities),
+            'results': copy.deepcopy(self.results),
+            'success_counts': self.success_counts.copy(),
+            'score': self.score,
+            'game_over': self.game_over
+        }
+        self.history.append(state)
+        
+        # 히스토리가 너무 많아지면 오래된 것 삭제 (최대 10개)
+        if len(self.history) > 10:
+            self.history.pop(0)
+    
+    def undo_last_move(self) -> Dict:
+        """마지막 수를 되돌리기"""
+        if not self.history:
+            return {"error": "No moves to undo"}
+        
+        # 마지막 상태로 복원
+        last_state = self.history.pop()
+        self.clicked = last_state['clicked']
+        self.probabilities = last_state['probabilities']
+        self.results = last_state['results']
+        self.success_counts = last_state['success_counts']
+        self.score = last_state['score']
+        self.game_over = last_state['game_over']
+        
+        return {"success": True, "message": "Last move undone"}
+    
+    def can_undo(self) -> bool:
+        """되돌리기 가능 여부 확인"""
+        return len(self.history) > 0
+    
     def click_position(self, row: int, col: int) -> Dict:
         """특정 위치 클릭"""
         if self.clicked[row][col]:
@@ -45,6 +91,9 @@ class GameEnvironment:
         for check_col in range(col):
             if not self.clicked[row][check_col]:
                 return {"error": "Must click from left to right"}
+        
+        # 클릭하기 전 현재 상태 저장
+        self.save_state()
         
         # 현재 확률로 성공/실패 결정
         current_prob = self.probabilities[row][col]
@@ -101,12 +150,31 @@ class GameEnvironment:
             "goals": self.goals,
             "score": self.score,
             "available_positions": self.get_available_positions(),
-            "game_over": self.game_over
+            "game_over": self.game_over,
+            "can_undo": self.can_undo()
         }
     
     def check_goals_achieved(self) -> Dict:
-        """목표 달성 여부 체크"""
+        """목표 달성 여부 체크 - 4가지 승리 조건 중 하나만 만족하면 됨"""
         achievements = {}
+        
+        # 각 승리 조건별로 체크
+        victory_achieved = []
+        for i, condition in enumerate(self.victory_conditions):
+            condition_met = True
+            for row in range(3):
+                row_key = f'row_{row}'
+                goal = condition[row_key]
+                success_count = self.success_counts[row]
+                if not (goal['min'] <= success_count <= goal['max']):
+                    condition_met = False
+                    break
+            victory_achieved.append(condition_met)
+        
+        # 하나라도 조건을 만족하면 승리
+        any_victory = any(victory_achieved)
+        
+        # 현재 각 행별 상태 (기존 호환성)
         for i in range(3):
             row_key = f'row_{i}'
             goal = self.goals[row_key]
@@ -118,8 +186,14 @@ class GameEnvironment:
                 'target': f"{goal['min']}-{goal['max']}"
             }
         
-        all_achieved = all(achievements[f'row_{i}']['achieved'] for i in range(3))
-        achievements['all_goals'] = all_achieved
+        achievements['all_goals'] = any_victory  # 4가지 조건 중 하나라도 만족
+        achievements['victory_conditions'] = victory_achieved  # 각 조건별 달성 여부
+        achievements['victory_details'] = [
+            "행1: 10개, 행2: 6개이상, 행3: 4개이하",
+            "행1: 9개이상, 행2: 7개이상, 행3: 4개이하", 
+            "행1: 7개이상, 행2: 9개이상, 행3: 4개이하",
+            "행1: 6개이상, 행2: 10개, 행3: 4개이하"
+        ]
         
         return achievements
     
