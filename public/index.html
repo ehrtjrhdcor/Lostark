@@ -126,231 +126,151 @@
                         <li>브라우저에서 <a href="http://localhost:1707">http://localhost:1707</a>를 방문하세요</li>
                     </ol>
 
-                    <!-- OCR 연습 섹션 -->
-                    <div class="ocr-practice-section"
-                        style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                        <h3>🔍 OCR 연습</h3>
-                        <p style="margin-bottom: 15px;">전투분석기 이미지를 업로드해서 OCR 기능을 테스트해보세요.</p>
-
-                        <div class="mini-upload-area"
-                            style="border: 2px dashed #ddd; padding: 15px; text-align: center; border-radius: 5px; margin-bottom: 15px;">
-                            <input type="file" id="ocrTestFile" accept="image/*" style="display: none;">
-                            <button type="button" id="ocrTestBtn"
-                                style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">이미지
-                                선택</button>
-                            <div id="ocrTestResult" style="margin-top: 15px; display: none;"></div>
-                        </div>
+                    <!-- 서버 연결 테스트 버튼 -->
+                    <div
+                        style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                        <h4>서버 연결 테스트</h4>
+                        <p style="margin-bottom: 15px; color: #666;">서버가 정상적으로 실행되고 있는지 확인해보세요.</p>
+                        <button type="button" id="serverTestBtn" onclick="testServerConnection()"
+                            style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                            🔌 서버 연결 테스트
+                        </button>
+                        <div id="serverTestResult" style="margin-top: 15px;"></div>
                     </div>
+
                 </div>
             </div>
 
             <!-- 연락처 페이지 -->
             <div class="page" id="contact">
                 <div class="content-section">
-                    <h2>🎮 머신러닝 게임</h2>
-                    <p>3행 10칸 확률 게임 - AI가 최적의 수를 예측해드립니다!</p>
-                    
-                    <!-- 게임 설명 -->
-                    <div class="game-rules" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4>게임 규칙:</h4>
-                        <ul>
-                            <li>3행 10칸, 총 30개의 칸이 있습니다</li>
-                            <li>각 칸은 한 번씩만 클릭할 수 있습니다</li>
-                            <li>클릭 시 확률에 따라 성공/실패가 결정됩니다</li>
-                            <li><strong>1,2행</strong>: 성공할수록 좋음 (+1점)</li>
-                            <li><strong>3행</strong>: 실패할수록 좋음 (+1점)</li>
-                            <li>성공 시 확률 -10%, 실패 시 확률 +10% (25%~75% 범위)</li>
-                        </ul>
-                    </div>
-                    
-                    <!-- 게임 컨트롤 -->
-                    <div class="game-controls" style="margin-bottom: 20px;">
-                        <button id="newGameBtn" class="game-btn primary">새 게임</button>
-                        <button id="undoBtn" class="game-btn secondary" disabled>되돌리기</button>
-                        <button id="aiSuggestionBtn" class="game-btn secondary">AI 추천</button>
-                        <button id="autoPlayBtn" class="game-btn secondary">AI 자동 플레이</button>
-                        <span id="gameScore" class="score-display">점수: 0</span>
-                    </div>
-                    
-                    <!-- 목표 및 현재 상태 -->
-                    <div class="game-status" style="margin-bottom: 20px;">
-                        <div class="goals-container">
-                            <h4>🎯 목표</h4>
-                            <div class="goal-rows">
-                                <div class="goal-row">
-                                    <span class="row-name">1행:</span>
-                                    <span class="goal-text">7-9개 성공</span>
-                                    <div class="progress-container">
-                                        <div class="progress-bar" id="progress-row-0"></div>
-                                        <span class="progress-text" id="progress-text-0">0/10</span>
-                                    </div>
-                                </div>
-                                <div class="goal-row">
-                                    <span class="row-name">2행:</span>
-                                    <span class="goal-text">6-10개 성공</span>
-                                    <div class="progress-container">
-                                        <div class="progress-bar" id="progress-row-1"></div>
-                                        <span class="progress-text" id="progress-text-1">0/10</span>
-                                    </div>
-                                </div>
-                                <div class="goal-row">
-                                    <span class="row-name">3행:</span>
-                                    <span class="goal-text">0-5개 성공</span>
-                                    <div class="progress-container">
-                                        <div class="progress-bar" id="progress-row-2"></div>
-                                        <span class="progress-text" id="progress-text-2">0/10</span>
-                                    </div>
-                                </div>
+                    <h2>연락처</h2>
+                    <p>문의사항이나 피드백은 아래 이메일로 보내주세요:</p>
+                    <p><strong>Email:</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- 이미지 분석 모달 -->
+        <div id="imageAnalysisModal" class="modal">
+            <div class="modal-content-large">
+                <span class="close-btn" onclick="closeImageAnalysisModal()">&times;</span>
+                <div class="modal-header">
+                    <h2 id="modalRaidTitle">레이드 이미지 분석</h2>
+                    <p id="modalRaidInfo">캐릭터: <span id="modalCharacterName"></span> | 레이드: <span
+                            id="modalRaidName"></span>
+                    </p>
+                </div>
+
+                <!-- 좌우 분할 영역 -->
+                <div class="modal-split-container">
+                    <!-- 왼쪽 영역 -->
+                    <div class="modal-left-section">
+                        <!-- 왼쪽 이미지 업로드 영역 -->
+                        <div class="upload-area-small">
+                            <div class="upload-box-small" id="leftUploadBox">
+                                <div class="upload-icon-small">📁</div>
+                                <span class="upload-text-small">이미지 업로드</span>
+                                <input type="file" id="leftFileInput" accept="image/*" class="hidden">
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- 게임 보드 -->
-                    <div class="game-board-container">
-                        <div id="gameBoard" class="game-board">
-                            <!-- 게임 보드가 여기에 동적으로 생성됩니다 -->
+
+                        <!-- 통계 표 -->
+                        <div class="stats-table-container">
+                            <table class="stats-table">
+                                <tr>
+                                    <td class="stats-label">피해량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                    <td class="stats-label">초당 피해량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">1분 피해량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                    <td class="stats-label">1분 초당 피해량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">치명타 적중률</td>
+                                    <td class="stats-input"><input type="text" placeholder="%"></td>
+                                    <td class="stats-label">백어택 적중률</td>
+                                    <td class="stats-input"><input type="text" placeholder="%"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">헤드어택 적중률</td>
+                                    <td class="stats-input"><input type="text" placeholder="%"></td>
+                                    <td class="stats-label">받은 피해량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">피해 감소량</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                    <td class="stats-label">무력화</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">카운터 성공 횟수</td>
+                                    <td class="stats-input"><input type="text" placeholder="횟수"></td>
+                                    <td class="stats-label">저스트 가드 성공 횟수</td>
+                                    <td class="stats-input"><input type="text" placeholder="횟수"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">배틀 아이템 사용횟수</td>
+                                    <td class="stats-input"><input type="text" placeholder="횟수"></td>
+                                    <td class="stats-label">빈칸</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                                <tr>
+                                    <td class="stats-label">빈칸</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                    <td class="stats-label">빈칸</td>
+                                    <td class="stats-input"><input type="text" placeholder="값 입력"></td>
+                                </tr>
+                            </table>
                         </div>
                     </div>
-                    
-                    <!-- AI 추천 정보 -->
-                    <div id="aiSuggestion" class="ai-suggestion hidden">
-                        <h4>🤖 AI 추천</h4>
-                        <p id="aiSuggestionText"></p>
-                    </div>
-                    
-                    <!-- 게임 로그 -->
-                    <div class="game-log-container">
-                        <h4>게임 로그</h4>
-                        <div id="gameLog" class="game-log">
-                            게임을 시작하려면 '새 게임' 버튼을 클릭하세요.
+
+                    <!-- 구분선 -->
+                    <div class="modal-divider"></div>
+
+                    <!-- 오른쪽 영역 -->
+                    <div class="modal-right-section">
+                        <!-- 오른쪽 이미지 업로드 영역 -->
+                        <div class="upload-area-small">
+                            <div class="upload-box-small" id="rightUploadBox">
+                                <div class="upload-icon-small">📁</div>
+                                <span class="upload-text-small">이미지 업로드</span>
+                                <input type="file" id="rightFileInput" accept="image/*" class="hidden">
+                            </div>
+                        </div>
+
+                        <!-- 오른쪽 메인 컨텐츠 영역 -->
+                        <div class="right-content-area">
                         </div>
                     </div>
+                </div>
+
+                <!-- 모달 하단 버튼 영역 -->
+                <div class="modal-footer">
+                    <button type="button" class="modal-btn cancel-btn" onclick="closeImageAnalysisModal()">
+                        취소
+                    </button>
+                    <button type="button" class="modal-btn save-btn" onclick="saveModalData()">
+                        저장
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 이미지 분석 모달 -->
-    <div id="imageAnalysisModal" class="modal">
-        <div class="modal-content-large">
-            <span class="close-btn" onclick="closeImageAnalysisModal()">&times;</span>
-            <div class="modal-header">
-                <h2 id="modalRaidTitle">레이드 이미지 분석</h2>
-                <p id="modalRaidInfo">캐릭터: <span id="modalCharacterName"></span> | 레이드: <span id="modalRaidName"></span>
-                </p>
-            </div>
-            
-            <!-- 좌우 분할 영역 -->
-            <div class="modal-split-container">
-                <!-- 왼쪽 영역 -->
-                <div class="modal-left-section">
-                    <!-- 왼쪽 이미지 업로드 영역 -->
-                    <div class="upload-area-small">
-                        <div class="upload-box-small" id="leftUploadBox">
-                            <div class="upload-icon-small">📁</div>
-                            <span class="upload-text-small">이미지 업로드</span>
-                            <input type="file" id="leftFileInput" accept="image/*" class="hidden">
-                        </div>
-                    </div>
-                    
-                    <!-- 통계 표 -->
-                    <div class="stats-table-container">
-                        <table class="stats-table">
-                            <tr>
-                                <td class="stats-label">피해량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                                <td class="stats-label">초당 피해량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">1분 피해량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                                <td class="stats-label">1분 초당 피해량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">치명타 적중률</td>
-                                <td class="stats-input"><input type="text" placeholder="%"></td>
-                                <td class="stats-label">백어택 적중률</td>
-                                <td class="stats-input"><input type="text" placeholder="%"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">헤드어택 적중률</td>
-                                <td class="stats-input"><input type="text" placeholder="%"></td>
-                                <td class="stats-label">받은 피해량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">피해 감소량</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                                <td class="stats-label">무력화</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">카운터 성공 횟수</td>
-                                <td class="stats-input"><input type="text" placeholder="횟수"></td>
-                                <td class="stats-label">저스트 가드 성공 횟수</td>
-                                <td class="stats-input"><input type="text" placeholder="횟수"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">배틀 아이템 사용횟수</td>
-                                <td class="stats-input"><input type="text" placeholder="횟수"></td>
-                                <td class="stats-label">빈칸</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                            <tr>
-                                <td class="stats-label">빈칸</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                                <td class="stats-label">빈칸</td>
-                                <td class="stats-input"><input type="text" placeholder="값 입력"></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- 구분선 -->
-                <div class="modal-divider"></div>
-                
-                <!-- 오른쪽 영역 -->
-                <div class="modal-right-section">
-                    <!-- 오른쪽 이미지 업로드 영역 -->
-                    <div class="upload-area-small">
-                        <div class="upload-box-small" id="rightUploadBox">
-                            <div class="upload-icon-small">📁</div>
-                            <span class="upload-text-small">이미지 업로드</span>
-                            <input type="file" id="rightFileInput" accept="image/*" class="hidden">
-                        </div>
-                    </div>
-                    
-                    <!-- 오른쪽 메인 컨텐츠 영역 -->
-                    <div class="right-content-area">
-                        <p>스킬별 데미지 분석을 위해 스킬 이미지를 업로드해주세요.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 모달 하단 버튼 영역 -->
-            <div class="modal-footer">
-                <button type="button" class="modal-btn cancel-btn" onclick="closeImageAnalysisModal()">
-                    취소
-                </button>
-                <button type="button" class="modal-btn save-btn" onclick="saveModalData()">
-                    저장
-                </button>
-            </div>
-        </div>
-    </div>
+        <!-- Tesseract.js CDN -->
+        <script src='https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'></script>
 
-    <!-- Tesseract.js CDN -->
-    <script src='https://unpkg.com/tesseract.js@5/dist/tesseract.min.js'></script>
-
-    <!-- JavaScript 모듈들 -->
-    <script src="js/api.js"></script>
-    <script src="js/character.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/modal.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+        <!-- JavaScript 모듈들 -->
+        <script src="js/api.js"></script>
+        <script src="js/character.js"></script>
+        <script src="js/ui.js"></script>
+        <script src="js/modal.js"></script>
+        <script src="js/main.js"></script>
 </body>
 
 </html>

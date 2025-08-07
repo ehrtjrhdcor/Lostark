@@ -340,6 +340,8 @@
     padding: 20px;
     background: #f9f9f9;
     border-radius: 10px;
+    overflow-y: auto;
+    max-height: calc(90vh - 200px);
 }
 
 /* 오른쪽 영역 */
@@ -350,6 +352,38 @@
     padding: 20px;
     background: #f9f9f9;
     border-radius: 10px;
+    overflow-y: auto;
+    max-height: calc(90vh - 200px);
+}
+
+/* 모달 스크롤바 스타일링 */
+.modal-left-section::-webkit-scrollbar,
+.modal-right-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-left-section::-webkit-scrollbar-track,
+.modal-right-section::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.modal-left-section::-webkit-scrollbar-thumb,
+.modal-right-section::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.modal-left-section::-webkit-scrollbar-thumb:hover,
+.modal-right-section::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 부드러운 스크롤 */
+.modal-left-section,
+.modal-right-section {
+    scroll-behavior: smooth;
 }
 
 /* 구분선 */

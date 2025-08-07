@@ -12,6 +12,24 @@
     display: none !important;
 }
 
+/* 시작하기 버튼 호버 효과 */
+.start-btn:hover {
+    background: #e55a2b !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+}
+
+.start-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+}
+
+.start-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
 /* 기본 바디 스타일 */
 body {
     font-family: Arial, sans-serif;

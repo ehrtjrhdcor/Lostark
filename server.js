@@ -114,6 +114,94 @@ app.get('/api/config', (req, res) => {
 
 
 /**
+ * 이미지 OCR 처리 엔드포인트
+ * 
+ * POST /api/process-images
+ * - Python OCR 스크립트를 실행하여 게임 통계 추출
+ */
+app.post('/api/process-images', async (req, res) => {
+    try {
+        console.log('🖼️ 이미지 OCR 처리 시작...');
+        
+        // Python OCR 스크립트 실행
+        const pythonProcess = spawn('python', ['ocr_processor.py'], {
+            cwd: __dirname,
+            stdio: 'pipe'
+        });
+
+        let outputData = '';
+        let errorData = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+            outputData += data.toString();
+            console.log('Python 출력:', data.toString());
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            errorData += data.toString();
+            console.error('Python 에러:', data.toString());
+        });
+
+        pythonProcess.on('close', async (code) => {
+            try {
+                if (code !== 0) {
+                    console.error('Python 스크립트 오류:', errorData);
+                    return res.status(500).json({
+                        success: false,
+                        error: 'OCR 처리 실패',
+                        details: errorData
+                    });
+                }
+
+                // JSON 결과 파일 읽기
+                const resultPath = path.join(__dirname, 'game_ocr_results.json');
+                
+                if (fs.existsSync(resultPath)) {
+                    const resultData = fs.readFileSync(resultPath, 'utf-8');
+                    const ocrResults = JSON.parse(resultData);
+                    
+                    console.log('✅ OCR 처리 완료:', ocrResults.combined_stats);
+                    
+                    return res.json({
+                        success: true,
+                        message: 'OCR 분석 완료',
+                        stats: ocrResults.combined_stats,
+                        raw_results: ocrResults
+                    });
+                } else {
+                    throw new Error('결과 파일을 찾을 수 없습니다');
+                }
+
+            } catch (parseError) {
+                console.error('결과 파싱 오류:', parseError);
+                return res.status(500).json({
+                    success: false,
+                    error: '결과 파싱 실패',
+                    details: parseError.message
+                });
+            }
+        });
+
+        pythonProcess.on('error', (error) => {
+            console.error('Python 프로세스 오류:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Python 실행 실패',
+                details: error.message
+            });
+        });
+
+    } catch (error) {
+        console.error('이미지 처리 API 오류:', error);
+        res.status(500).json({
+            success: false,
+            error: '서버 오류',
+            details: error.message
+        });
+    }
+});
+
+/**
  * 로스트아크 API 테스트 엔드포인트
  * 
  * POST /api/lostark/test
