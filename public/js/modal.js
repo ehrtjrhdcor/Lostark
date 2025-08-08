@@ -88,26 +88,6 @@ function initLeftUpload() {
         }
     });
 
-    // 드래그 앤 드롭 이벤트
-    leftUploadBox.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        leftUploadBox.classList.add('dragover');
-    });
-
-    leftUploadBox.addEventListener('dragleave', function (e) {
-        e.preventDefault();
-        leftUploadBox.classList.remove('dragover');
-    });
-
-    leftUploadBox.addEventListener('drop', function (e) {
-        e.preventDefault();
-        leftUploadBox.classList.remove('dragover');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleLeftImageUpload(files[0]);
-        }
-    });
 }
 
 // 오른쪽 이미지 업로드 초기화
@@ -130,26 +110,6 @@ function initRightUpload() {
         }
     });
 
-    // 드래그 앤 드롭 이벤트
-    rightUploadBox.addEventListener('dragover', function (e) {
-        e.preventDefault();
-        rightUploadBox.classList.add('dragover');
-    });
-
-    rightUploadBox.addEventListener('dragleave', function (e) {
-        e.preventDefault();
-        rightUploadBox.classList.remove('dragover');
-    });
-
-    rightUploadBox.addEventListener('drop', function (e) {
-        e.preventDefault();
-        rightUploadBox.classList.remove('dragover');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleRightImageUpload(files[0]);
-        }
-    });
 }
 
 // 왼쪽 이미지 업로드 처리 (통계용)
@@ -163,7 +123,7 @@ function handleLeftImageUpload(file) {
     preprocessImage(file);
 }
 
-// 이미지 표시 및 선택 준비 함수 (전처리 X)
+// 이미지 전처리 및 OCR 분석 함수
 function preprocessImage(file) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -174,17 +134,14 @@ function preprocessImage(file) {
         canvas.width = img.width;
         canvas.height = img.height;
 
-        // 이미지를 캔버스에 그리기 (전처리 없이 원본 표시)
+        // 이미지를 캔버스에 그리기
         ctx.drawImage(img, 0, 0);
 
-        // Canvas를 페이지에 표시
-        displayCanvasForSelection(canvas);
+        console.log('이미지 로드 완료! OCR 분석 시작...');
+        showLeftUploadStatus('OCR 분석 중...', 'loading');
 
-        // 드래그 선택 기능 활성화
-        setupDragSelection(canvas);
-
-        console.log('이미지 로드 완료! 원하는 영역을 드래그해서 선택하세요.');
-        showLeftUploadStatus('영역을 드래그해서 선택하세요', 'info');
+        // 바로 OCR 분석
+        performOCR(canvas);
     };
 
     // 파일을 이미지로 로드
@@ -219,97 +176,7 @@ function displayCanvasForSelection(canvas) {
     }
 }
 
-// 드래그 선택 기능 설정
-function setupDragSelection(canvas) {
-    let isSelecting = false;
-    let startX, startY, currentX, currentY;
-    let selectionRect = null;
 
-    // 마우스 다운 (드래그 시작)
-    canvas.addEventListener('mousedown', function (e) {
-        const rect = canvas.getBoundingClientRect();
-        startX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        startY = (e.clientY - rect.top) * (canvas.height / rect.height);
-        isSelecting = true;
-
-        console.log('드래그 시작:', startX, startY);
-        showLeftUploadStatus('드래그 중...', 'info');
-    });
-
-    // 마우스 이동 (드래그 중)
-    canvas.addEventListener('mousemove', function (e) {
-        if (!isSelecting) return;
-
-        const rect = canvas.getBoundingClientRect();
-        currentX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        currentY = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-        // 선택 영역 그리기
-        drawSelectionRect(canvas, startX, startY, currentX, currentY);
-    });
-
-    // 마우스 업 (드래그 완료)
-    canvas.addEventListener('mouseup', function (e) {
-        if (!isSelecting) return;
-
-        const rect = canvas.getBoundingClientRect();
-        currentX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        currentY = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-        isSelecting = false;
-
-        // 선택 영역 정보 저장
-        selectionRect = {
-            x: Math.min(startX, currentX),
-            y: Math.min(startY, currentY),
-            width: Math.abs(currentX - startX),
-            height: Math.abs(currentY - startY)
-        };
-
-        console.log('선택 완료:', selectionRect);
-        showLeftUploadStatus(`영역 선택됨: ${Math.round(selectionRect.width)}x${Math.round(selectionRect.height)}`, 'success');
-
-        // OCR 분석 버튼 표시
-        showOCRButton(canvas, selectionRect);
-    });
-}
-
-// 선택 영역 실시간 그리기 함수
-function drawSelectionRect(canvas, startX, startY, currentX, currentY) {
-    const ctx = canvas.getContext('2d');
-
-    // 캔버스를 다시 그려서 이전 선택 영역 제거
-    const img = new Image();
-    img.onload = function () {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-
-        // 선택 영역 계산
-        const x = Math.min(startX, currentX);
-        const y = Math.min(startY, currentY);
-        const width = Math.abs(currentX - startX);
-        const height = Math.abs(currentY - startY);
-
-        // 선택 영역 하이라이트
-        ctx.strokeStyle = '#ff0066';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
-
-        // 반투명 오버레이
-        ctx.fillStyle = 'rgba(255, 0, 102, 0.2)';
-        ctx.fillRect(x, y, width, height);
-
-        // 선택 영역 크기 정보 표시
-        if (width > 50 && height > 20) {
-            ctx.fillStyle = '#ff0066';
-            ctx.font = '14px Arial';
-            ctx.fillText(`${Math.round(width)} × ${Math.round(height)}`, x + 5, y - 5);
-        }
-    };
-
-    // 현재 캔버스의 이미지 데이터를 사용
-    img.src = canvas.toDataURL();
-}
 
 // OCR 분석 버튼 표시 함수
 function showOCRButton(canvas, selectionRect) {
@@ -357,566 +224,17 @@ function showOCRButton(canvas, selectionRect) {
 
 // 선택 영역 처리 메인 함수
 function processSelectedArea(originalCanvas, selectionRect) {
-    console.log('선택 영역 처리 시작:', selectionRect);
-    showLeftUploadStatus('선택 영역 추출 중...', 'info');
 
-    // 1. 선택 영역만 추출
-    const selectedAreaCanvas = extractSelectedArea(originalCanvas, selectionRect);
+    applyAdvancedPreprocessing(originalCanvas).then((processedCanvas) => { performOCR(processedCanvas) })
 
-    // // 2. 추출된 영역에 고급 전처리 적용
-    // const processedCanvas = applyAdvancedPreprocessing(selectedAreaCanvas);
 
-    // 3. 전처리된 영역으로 OCR 분석
-    performOCROnSelectedArea(selectedAreaCanvas);
 }
 
-// 선택된 영역만 추출하는 함수
-function extractSelectedArea(originalCanvas, rect) {
-    // 새로운 캔버스 생성 (선택 영역 크기)
-    const extractedCanvas = document.createElement('canvas');
-    extractedCanvas.width = rect.width;
-    extractedCanvas.height = rect.height;
-    const extractedCtx = extractedCanvas.getContext('2d');
 
-    // 원본 이미지의 선택 영역만 새 캔버스에 그리기
-    const originalCtx = originalCanvas.getContext('2d');
-    const imageData = originalCtx.getImageData(rect.x, rect.y, rect.width, rect.height);
-    extractedCtx.putImageData(imageData, 0, 0);
 
-    console.log(`영역 추출 완료: ${rect.width}x${rect.height}`);
 
-    // 추출된 영역을 화면에 미리보기로 표시
-    showExtractedPreview(extractedCanvas);
 
-    return extractedCanvas;
-}
 
-// 추출된 영역 미리보기 표시
-function showExtractedPreview(extractedCanvas) {
-    // 기존 미리보기 제거
-    const existingPreview = document.querySelector('#extractedPreview');
-    if (existingPreview) {
-        existingPreview.remove();
-    }
-
-    // 미리보기 컨테이너 생성
-    const previewContainer = document.createElement('div');
-    previewContainer.id = 'extractedPreview';
-    previewContainer.style.cssText = `
-        margin: 20px 0;
-        padding: 15px;
-        border: 2px solid #28a745;
-        border-radius: 8px;
-        background: #f8f9fa;
-    `;
-
-    // 제목 추가
-    const title = document.createElement('h4');
-    title.textContent = '📋 추출된 영역';
-    title.style.cssText = `
-        color: #28a745;
-        margin: 0 0 10px 0;
-        font-size: 16px;
-    `;
-    previewContainer.appendChild(title);
-
-    // 추출된 캔버스 스타일링
-    const previewCanvas = extractedCanvas.cloneNode(true);
-    const previewCtx = previewCanvas.getContext('2d');
-    previewCtx.drawImage(extractedCanvas, 0, 0);
-
-    previewCanvas.style.cssText = `
-        border: 1px solid #dee2e6;
-        max-width: 300px;
-        height: auto;
-        display: block;
-    `;
-
-    previewContainer.appendChild(previewCanvas);
-
-    // 크기 정보 추가
-    const info = document.createElement('p');
-    info.textContent = `크기: ${extractedCanvas.width} × ${extractedCanvas.height} 픽셀`;
-    info.style.cssText = `
-        margin: 10px 0 0 0;
-        color: #6c757d;
-        font-size: 14px;
-    `;
-    previewContainer.appendChild(info);
-
-    // OCR 버튼 아래에 미리보기 추가
-    const ocrButton = document.querySelector('#ocrAnalyzeBtn');
-    if (ocrButton) {
-        ocrButton.parentNode.insertBefore(previewContainer, ocrButton.nextSibling);
-    }
-}
-
-// 선택 영역에 고급 전처리 적용
-function applyAdvancedPreprocessing(selectedCanvas) {
-    console.log('선택 영역 고급 전처리 시작...');
-    showLeftUploadStatus('고급 전처리 적용 중...', 'info');
-
-    // 전처리할 캔버스 복사
-    const processCanvas = document.createElement('canvas');
-    processCanvas.width = selectedCanvas.width;
-    processCanvas.height = selectedCanvas.height;
-    const processCtx = processCanvas.getContext('2d');
-    processCtx.drawImage(selectedCanvas, 0, 0);
-
-    // === 고급 전처리 단계별 적용 ===
-
-    // 1단계: 해상도 향상 (2배 확대)
-    console.log('1/6: 해상도 향상...');
-    const scaledCanvas = scaleUpImage(processCanvas, processCtx, 2.0);
-    const scaledCtx = scaledCanvas.getContext('2d');
-
-    // 2단계: 노이즈 제거 (Gaussian blur)
-    console.log('2/6: 노이즈 제거...');
-    applyGaussianBlur(scaledCanvas, scaledCtx, 1.0);
-
-    // 3단계: 그레이스케일 변환
-    console.log('3/6: 그레이스케일 변환...');
-    convertToGrayscale(scaledCanvas, scaledCtx);
-
-    // 4단계: 히스토그램 평활화
-    console.log('4/6: 히스토그램 평활화...');
-    applyHistogramEqualization(scaledCanvas, scaledCtx);
-
-    // 5단계: 대비 향상 및 선명화
-    console.log('5/6: 대비 향상 및 선명화...');
-    enhanceContrastAndSharpness(scaledCanvas, scaledCtx);
-
-    // 6단계: 적응형 이진화
-    console.log('6/6: 적응형 이진화...');
-    applyAdaptiveThreshold(scaledCanvas, scaledCtx);
-
-    console.log('선택 영역 고급 전처리 완료!');
-    showLeftUploadStatus('전처리 완료, OCR 분석 중...', 'info');
-
-    // 전처리된 결과 미리보기 표시
-    showProcessedPreview(scaledCanvas);
-
-    return scaledCanvas;
-}
-
-// 전처리된 결과 미리보기 표시
-function showProcessedPreview(processedCanvas) {
-    // 기존 전처리 미리보기 제거
-    const existingProcessed = document.querySelector('#processedPreview');
-    if (existingProcessed) {
-        existingProcessed.remove();
-    }
-
-    // 전처리 결과 컨테이너 생성
-    const processedContainer = document.createElement('div');
-    processedContainer.id = 'processedPreview';
-    processedContainer.style.cssText = `
-        margin: 20px 0;
-        padding: 15px;
-        border: 2px solid #6f42c1;
-        border-radius: 8px;
-        background: #f8f9fa;
-    `;
-
-    // 제목 추가
-    const title = document.createElement('h4');
-    title.textContent = '🚀 전처리된 영역';
-    title.style.cssText = `
-        color: #6f42c1;
-        margin: 0 0 10px 0;
-        font-size: 16px;
-    `;
-    processedContainer.appendChild(title);
-
-    // 전처리된 캔버스 스타일링
-    const previewCanvas = processedCanvas.cloneNode(true);
-    const previewCtx = previewCanvas.getContext('2d');
-    previewCtx.drawImage(processedCanvas, 0, 0);
-
-    previewCanvas.style.cssText = `
-        border: 1px solid #dee2e6;
-        max-width: 400px;
-        height: auto;
-        display: block;
-        image-rendering: pixelated;
-    `;
-
-    processedContainer.appendChild(previewCanvas);
-
-    // 처리 정보 추가
-    const info = document.createElement('p');
-    info.textContent = `크기: ${processedCanvas.width} × ${processedCanvas.height} 픽셀 (6단계 전처리 완료)`;
-    info.style.cssText = `
-        margin: 10px 0 0 0;
-        color: #6c757d;
-        font-size: 14px;
-    `;
-    processedContainer.appendChild(info);
-
-    // 추출된 영역 미리보기 아래에 전처리 결과 추가
-    const extractedPreview = document.querySelector('#extractedPreview');
-    if (extractedPreview) {
-        extractedPreview.parentNode.insertBefore(processedContainer, extractedPreview.nextSibling);
-    }
-}
-
-// 선택 영역 전용 OCR 분석
-function performOCROnSelectedArea(processedCanvas) {
-    console.log('선택 영역 OCR 분석 시작...');
-    showLeftUploadStatus('OCR 분석 중...', 'info');
-
-    // Tesseract.js로 선택 영역만 OCR 분석
-    Tesseract.recognize(
-        processedCanvas,
-        'kor+eng', // 한국어 + 영어
-        {
-            logger: m => {
-                if (m.status === 'recognizing text') {
-                    const progress = Math.round(m.progress * 100);
-                    showLeftUploadStatus(`OCR 진행중... ${progress}%`, 'info');
-                    console.log(`OCR 진행률: ${progress}%`);
-                }
-            },
-            // 고급 OCR 설정
-            tessedit_pageseg_mode: '6', // 단일 텍스트 블록 모드
-            tessedit_ocr_engine_mode: '1', // LSTM 엔진
-            preserve_interword_spaces: '1', // 단어 간 공백 보존
-        }
-    ).then(({ data: { text, confidence, words } }) => {
-        console.log('=== 선택 영역 OCR 완료 ===');
-        console.log('추출된 텍스트:', text);
-        console.log('전체 신뢰도:', Math.round(confidence) + '%');
-        console.log('단어별 분석:', words);
-
-        if (confidence > 30) {
-            showLeftUploadStatus('OCR 분석 완료!', 'success');
-
-            // OCR 결과를 기존 텍스트 처리 파이프라인으로 전달
-            processOCRResult(text, confidence);
-
-            // 선택 영역 OCR 전용 결과 표시
-            showSelectedAreaOCRResult(text, confidence, words, processedCanvas);
-        } else {
-            showLeftUploadStatus('OCR 분석 실패 (낮은 신뢰도)', 'error');
-            console.log('OCR 신뢰도가 너무 낮습니다:', confidence + '%');
-
-            // 낮은 신뢰도여도 결과는 표시
-            showSelectedAreaOCRResult(text, confidence, words, processedCanvas, true);
-        }
-    }).catch(error => {
-        console.error('선택 영역 OCR 오류:', error);
-        showLeftUploadStatus('OCR 분석 중 오류 발생', 'error');
-    });
-}
-
-// 선택 영역 OCR 결과 전용 표시
-function showSelectedAreaOCRResult(text, confidence, words, processedCanvas, isLowConfidence = false) {
-    // 기존 OCR 결과 제거
-    const existingResult = document.querySelector('#selectedOCRResult');
-    if (existingResult) {
-        existingResult.remove();
-    }
-
-    // OCR 결과 컨테이너 생성
-    const resultContainer = document.createElement('div');
-    resultContainer.id = 'selectedOCRResult';
-    const borderColor = isLowConfidence ? '#dc3545' : '#17a2b8';
-    resultContainer.style.cssText = `
-        margin: 20px 0;
-        padding: 20px;
-        border: 3px solid ${borderColor};
-        border-radius: 10px;
-        background: ${isLowConfidence ? '#f8d7da' : '#d1ecf1'};
-    `;
-
-    // 제목 추가
-    const title = document.createElement('h3');
-    title.textContent = isLowConfidence ? '⚠️ OCR 결과 (낮은 신뢰도)' : '🎯 선택 영역 OCR 결과';
-    title.style.cssText = `
-        color: ${borderColor};
-        margin: 0 0 15px 0;
-        font-size: 18px;
-    `;
-    resultContainer.appendChild(title);
-
-    // 추출된 텍스트 표시
-    const textResult = document.createElement('div');
-    textResult.style.cssText = `
-        background: white;
-        padding: 15px;
-        border-radius: 6px;
-        border: 1px solid #dee2e6;
-        margin-bottom: 15px;
-        font-family: 'Courier New', monospace;
-        white-space: pre-wrap;
-        font-size: 16px;
-        line-height: 1.4;
-    `;
-    textResult.textContent = text || '(텍스트를 추출하지 못했습니다)';
-    resultContainer.appendChild(textResult);
-
-    // 통계 정보
-    const stats = document.createElement('div');
-    stats.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 15px;
-        padding: 10px;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 4px;
-        font-size: 14px;
-    `;
-
-    const confidenceColor = confidence > 70 ? '#28a745' : confidence > 30 ? '#ffc107' : '#dc3545';
-    stats.innerHTML = `
-        <span><strong>신뢰도:</strong> <span style="color: ${confidenceColor}; font-weight: bold;">${Math.round(confidence)}%</span></span>
-        <span><strong>추출된 단어 수:</strong> ${words ? words.length : 0}개</span>
-        <span><strong>처리 크기:</strong> ${processedCanvas.width}×${processedCanvas.height}px</span>
-    `;
-    resultContainer.appendChild(stats);
-
-    // 단어별 신뢰도 표시 (높은 신뢰도인 경우만)
-    if (!isLowConfidence && words && words.length > 0) {
-        const wordsTitle = document.createElement('h5');
-        wordsTitle.textContent = '📝 단어별 분석';
-        wordsTitle.style.cssText = 'color: #495057; margin: 15px 0 10px 0;';
-        resultContainer.appendChild(wordsTitle);
-
-        const wordsContainer = document.createElement('div');
-        wordsContainer.style.cssText = `
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 10px;
-        `;
-
-        words.forEach(word => {
-            const wordSpan = document.createElement('span');
-            const wordConfidence = Math.round(word.confidence);
-            const wordColor = wordConfidence > 70 ? '#28a745' : wordConfidence > 30 ? '#ffc107' : '#dc3545';
-
-            wordSpan.style.cssText = `
-                display: inline-block;
-                margin: 2px;
-                padding: 2px 6px;
-                background: ${wordColor};
-                color: white;
-                border-radius: 3px;
-                font-size: 12px;
-                font-weight: bold;
-            `;
-            wordSpan.textContent = `${word.text} (${wordConfidence}%)`;
-            wordsContainer.appendChild(wordSpan);
-        });
-
-        resultContainer.appendChild(wordsContainer);
-    }
-
-    // 전처리된 영역 미리보기 아래에 결과 추가
-    const processedPreview = document.querySelector('#processedPreview');
-    if (processedPreview) {
-        processedPreview.parentNode.insertBefore(resultContainer, processedPreview.nextSibling);
-    }
-
-    console.log('선택 영역 OCR 결과 표시 완료');
-}
-
-// === 고급 전처리 함수들 ===
-
-// 1. 해상도 향상 함수 (Bicubic interpolation 근사)
-function scaleUpImage(canvas, ctx, scale) {
-    const newWidth = Math.floor(canvas.width * scale);
-    const newHeight = Math.floor(canvas.height * scale);
-
-    const scaledCanvas = document.createElement('canvas');
-    scaledCanvas.width = newWidth;
-    scaledCanvas.height = newHeight;
-    const scaledCtx = scaledCanvas.getContext('2d');
-
-    // 고품질 스케일링 설정
-    scaledCtx.imageSmoothingEnabled = true;
-    scaledCtx.imageSmoothingQuality = 'high';
-
-    // 이미지 확대
-    scaledCtx.drawImage(canvas, 0, 0, newWidth, newHeight);
-
-    console.log(`해상도 향상: ${canvas.width}x${canvas.height} → ${newWidth}x${newHeight}`);
-    return scaledCanvas;
-}
-
-// 2. 가우시안 블러 (노이즈 제거)
-function applyGaussianBlur(canvas, ctx, radius) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // 간단한 박스 블러로 가우시안 블러 근사
-    const tempData = new Uint8ClampedArray(data);
-    const kernelSize = Math.max(1, Math.floor(radius * 2));
-
-    for (let y = kernelSize; y < height - kernelSize; y++) {
-        for (let x = kernelSize; x < width - kernelSize; x++) {
-            let r = 0, g = 0, b = 0, count = 0;
-
-            // 커널 적용
-            for (let ky = -kernelSize; ky <= kernelSize; ky++) {
-                for (let kx = -kernelSize; kx <= kernelSize; kx++) {
-                    const idx = ((y + ky) * width + (x + kx)) * 4;
-                    r += tempData[idx];
-                    g += tempData[idx + 1];
-                    b += tempData[idx + 2];
-                    count++;
-                }
-            }
-
-            const idx = (y * width + x) * 4;
-            data[idx] = r / count;
-            data[idx + 1] = g / count;
-            data[idx + 2] = b / count;
-        }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    console.log('가우시안 블러 적용 완료');
-}
-
-// 3. 그레이스케일 변환
-function convertToGrayscale(canvas, ctx) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        data[i] = gray;
-        data[i + 1] = gray;
-        data[i + 2] = gray;
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    console.log('그레이스케일 변환 완료');
-}
-
-// 4. 히스토그램 평활화
-function applyHistogramEqualization(canvas, ctx) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const histogram = new Array(256).fill(0);
-
-    // 히스토그램 계산
-    for (let i = 0; i < data.length; i += 4) {
-        histogram[data[i]]++;
-    }
-
-    // 누적 분포 함수 계산
-    const cdf = new Array(256).fill(0);
-    cdf[0] = histogram[0];
-    for (let i = 1; i < 256; i++) {
-        cdf[i] = cdf[i - 1] + histogram[i];
-    }
-
-    // 정규화
-    const totalPixels = canvas.width * canvas.height;
-    const cdfMin = cdf.find(val => val > 0);
-
-    // 평활화 적용
-    for (let i = 0; i < data.length; i += 4) {
-        const oldValue = data[i];
-        const newValue = Math.round(((cdf[oldValue] - cdfMin) / (totalPixels - cdfMin)) * 255);
-        data[i] = newValue;
-        data[i + 1] = newValue;
-        data[i + 2] = newValue;
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    console.log('히스토그램 평활화 완료');
-}
-
-// 5. 대비 향상 및 선명화 (Unsharp mask)
-function enhanceContrastAndSharpness(canvas, ctx) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const tempData = new Uint8ClampedArray(data);
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Unsharp mask 커널 (-1 주변, +9 중앙)
-    const kernel = [
-        -1, -1, -1,
-        -1, 9, -1,
-        -1, -1, -1
-    ];
-
-    for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-            let sum = 0;
-
-            // 3x3 커널 적용
-            for (let ky = -1; ky <= 1; ky++) {
-                for (let kx = -1; kx <= 1; kx++) {
-                    const idx = ((y + ky) * width + (x + kx)) * 4;
-                    const kernelIdx = (ky + 1) * 3 + (kx + 1);
-                    sum += tempData[idx] * kernel[kernelIdx];
-                }
-            }
-
-            const idx = (y * width + x) * 4;
-            const enhanced = Math.min(255, Math.max(0, sum));
-            data[idx] = enhanced;
-            data[idx + 1] = enhanced;
-            data[idx + 2] = enhanced;
-        }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    console.log('대비 향상 및 선명화 완료');
-}
-
-// 6. 적응형 이진화 (Adaptive Threshold)
-function applyAdaptiveThreshold(canvas, ctx) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const width = canvas.width;
-    const height = canvas.height;
-    const windowSize = 15; // 적응형 윈도우 크기
-    const c = 10; // 임계값 보정 상수
-
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            let sum = 0;
-            let count = 0;
-
-            // 주변 윈도우의 평균 계산
-            const startY = Math.max(0, y - windowSize / 2);
-            const endY = Math.min(height - 1, y + windowSize / 2);
-            const startX = Math.max(0, x - windowSize / 2);
-            const endX = Math.min(width - 1, x + windowSize / 2);
-
-            for (let wy = startY; wy <= endY; wy++) {
-                for (let wx = startX; wx <= endX; wx++) {
-                    const idx = (wy * width + wx) * 4;
-                    sum += data[idx];
-                    count++;
-                }
-            }
-
-            const mean = sum / count;
-            const idx = (y * width + x) * 4;
-            const threshold = mean - c;
-
-            // 이진화 적용
-            const binaryValue = data[idx] > threshold ? 255 : 0;
-            data[idx] = binaryValue;
-            data[idx + 1] = binaryValue;
-            data[idx + 2] = binaryValue;
-        }
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-    console.log('적응형 이진화 완료');
-}
 
 // Tesseract OCR 분석 함수
 function performOCR(canvas) {
@@ -978,10 +296,12 @@ function processOCRResult(text, confidence) {
     const tableData = formatAsTable(parsedData);
     console.log('테이블 형태:\n', tableData);
 
-    // 5. HTML 미리보기 생성 및 표시
-    const htmlPreview = generateHTMLPreview(parsedData);
+    // 5. HTML 미리보기 생성 및 표시 (원본 텍스트 포함)
+    const htmlPreview = generateHTMLPreview(parsedData, text);
     displayHTMLPreview(htmlPreview);
-    console.log('HTML 미리보기 생성 완료!');
+
+    const dataCount = Object.keys(parsedData).length;
+    console.log(`HTML 미리보기 생성 완료! (자동 파싱: ${dataCount > 0 ? dataCount + '개 성공' : '실패'})`);
 
     // 다음 단계로 진행 (통계 분석 등)
     // TODO: 게임 통계 분석 함수 호출
@@ -1004,43 +324,189 @@ function cleanWhitespace(text) {
         .replace(/\t/g, '    ');   // 탭을 4개 공백으로 변환해서 보기 좋게
 }
 
-// 3. 구조화된 파싱 함수
-function parseStructuredData(text) {
-    const lines = text.split('\n').filter(line => line.trim());
-    const data = {};
+// 불필요한 줄 필터링 함수
+function filterUnnecessaryLines(lines) {
+    return lines.filter((line, index) => {
+        // OCR 오류 패턴 제거
+        if (line.match(/\d+티하\d+.*\d+\s+\d+.*\.\.\/\./)) return false; // 2번째 줄 패턴
+        if (line.match(/^\d+\s+[\d.]+\s+공격 정보\s+지원 정보\s+타임 라인/)) return false; // 4번째 줄 패턴
+        if (line.match(/^\d+\?\s+\d+.*[~오+}ㅎ].*[-…\.]+/)) return false; // 8번째 줄 패턴
+        if (line.match(/^\d{12,}\s+\d{9,}$/)) return false; // 9번째 줄 패턴 (큰 숫자들만)
 
-    lines.forEach(line => {
-        // 한글 라벨 + 숫자/퍼센트 패턴 추출
-        const patterns = [
-            // "피해 증가 유효율    97.86%" 형태
-            /([가-힣a-zA-Z\s]+?)\s+([\d,\.%억만]+)/g,
-            // "1분 피해량    153.26억" 형태  
-            /(\d+분?\s*[가-힣]+)\s+([\d,\.%억만]+)/g,
-            // "백어택 적중률    50.09%" 형태
-            /([가-힣]+\s*적중률)\s+([\d,\.%]+)/g
-        ];
+        return true;
+    });
+}
 
-        patterns.forEach(pattern => {
-            let match;
-            while ((match = pattern.exec(line)) !== null) {
-                const label = match[1].trim();
-                const value = match[2].trim();
-                if (label && value) {
-                    data[label] = value;
+// 테이블 구조 처리 함수
+function processTableStructure(lines) {
+    const processedLines = [];
+    const tableData = {};
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const nextLine = lines[i + 1];
+        
+        // 테이블 헤더 패턴 감지 (여러 "님"이 포함된 줄)
+        if (line.includes('님') && line.split('님').length > 2 && nextLine) {
+            console.log('테이블 구조 감지:', line);
+            
+            // 헤더 정리 ("님" 제거 및 칼럼 추출)
+            const headers = line.split(/\s+/).filter(col => col.trim() && col !== '님');
+            const values = nextLine.split(/\s+/).filter(val => val.trim());
+            
+            // 헤더와 값 매칭
+            for (let j = 0; j < Math.min(headers.length, values.length); j++) {
+                if (headers[j] && values[j]) {
+                    tableData[headers[j]] = values[j];
                 }
+            }
+            
+            i++; // 다음 줄(데이터 행)도 건너뛰기
+            console.log('테이블 추출 완료:', tableData);
+        } else {
+            processedLines.push(line);
+        }
+    }
+    
+    return { processedLines, tableData };
+}
+
+
+// 의미없는 한글자 치환 함수
+function replaceSingleKoreanChars(line) {
+    // 공백으로 둘러싸인 단일 한글자를 "-"로 치환
+    return line.replace(/\s([가-힣])\s/g, ' - ');
+}
+
+// 게임 용어 사전 (OCR 오류 → 올바른 용어)
+const GAME_TERMINOLOGY_CORRECTIONS = {
+    '피하량': '피해량',
+    '적률': '적중률',
+    '유룰': '유효율',
+    '가동룰': '가동률',
+    '성공횟수': '성공 횟수',
+    '사용횟수': '사용 횟수',
+    '감소량': '감소량',
+    '증가량': '증가량',
+    '뽐하량': '피해량',
+    '비하량': '피해량',
+    '적충률': '적중률',
+    '적중률률': '적중률',
+    '유료율': '유효율',
+    '백어댁': '백어택',
+    '헤드어댁': '헤드어택',
+    '카운더': '카운터',
+    '피해감소량': '피해 감소량',
+    '치명다': '치명타',
+    '치멸타': '치명타'
+};
+
+// OCR 텍스트 보정 함수
+function correctOCRText(line) {
+    let correctedLine = line;
+
+    // 1. 누락된 숫자 보정 ("분" 앞에 숫자가 없으면 "1" 추가)
+    correctedLine = correctedLine.replace(/(?<!\d)분/g, '1분');
+
+    // 2. 게임 용어 보정
+    for (const [incorrect, correct] of Object.entries(GAME_TERMINOLOGY_CORRECTIONS)) {
+        const regex = new RegExp(`\\b${incorrect}\\b`, 'g');
+        correctedLine = correctedLine.replace(regex, correct);
+    }
+
+    // 3. 괄호 패턴 보정 ("전투 시간 17 : 49" → "전투 시간    17:49")
+    correctedLine = correctedLine.replace(/\(([가-힣\s]+)\s+(\d+)\s*:\s*(\d+)\)/g, function (match, term, hour, min) {
+        return `    ${term.trim()}    ${hour}:${min}`;
+    });
+
+    // 4. 추가 패턴 보정
+    // "초당피해량" → "초당 피해량" (띄어쓰기 추가)
+    correctedLine = correctedLine.replace(/초당([가-힣]+)/g, '초당 $1');
+
+    // "치명타피해" → "치명타 피해"
+    correctedLine = correctedLine.replace(/치명타([가-힣]+)/g, '치명타 $1');
+
+    // "백어택적중률" → "백어택 적중률"
+    correctedLine = correctedLine.replace(/백어택([가-힣]+)/g, '백어택 $1');
+    correctedLine = correctedLine.replace(/헤드어택([가-힣]+)/g, '헤드어택 $1');
+
+    return correctedLine;
+}
+
+// 3. 구조화된 파싱 함수 (고도화 버전 - 에러 처리 포함)
+function parseStructuredData(text) {
+    try {
+        const lines = text.split('\n').filter(line => line.trim());
+        const data = {};
+
+        // 1단계: 불필요한 줄 필터링
+        const filteredLines = filterUnnecessaryLines(lines);
+        console.log(`라인 필터링: ${lines.length}개 → ${filteredLines.length}개`);
+
+        // 2단계: 테이블 구조 처리
+        const { processedLines, tableData } = processTableStructure(filteredLines);
+        Object.assign(data, tableData);
+
+        // 3단계: 의미없는 한글자 치환
+        const cleanedLines = processedLines.map(line => replaceSingleKoreanChars(line));
+
+        // 4단계: OCR 텍스트 보정 (새로 추가)
+        const correctedLines = cleanedLines.map(line => correctOCRText(line));
+        console.log('OCR 텍스트 보정 완료');
+
+        // 5단계: 기존 패턴 매칭
+        correctedLines.forEach(line => {
+            try {
+                // 한글 라벨 + 숫자/퍼센트 패턴 추출
+                const patterns = [
+                    // "피해 증가 유효율    97.86%" 형태
+                    /([가-힣a-zA-Z\s]+?)\s+([\d,\.%억만]+)/g,
+                    // "1분 피해량    153.26억" 형태  
+                    /(\d+분?\s*[가-힣]+)\s+([\d,\.%억만]+)/g,
+                    // "백어택 적중률    50.09%" 형태
+                    /([가-힣]+\s*적중률)\s+([\d,\.%]+)/g
+                ];
+
+                patterns.forEach(pattern => {
+                    try {
+                        let match;
+                        while ((match = pattern.exec(line)) !== null) {
+                            const label = match[1] ? match[1].trim() : '';
+                            const value = match[2] ? match[2].trim() : '';
+                            if (label && value) {
+                                data[label] = value;
+                            }
+                        }
+                    } catch (patternError) {
+                        console.warn('패턴 매칭 중 오류:', patternError, 'Line:', line);
+                    }
+                });
+
+                // 큰 숫자 (190,499,169,150 같은) 별도 처리
+                try {
+                    const bigNumbers = line.match(/\b\d{3,}(?:,\d{3})*\b/g);
+                    if (bigNumbers) {
+                        bigNumbers.forEach((num, index) => {
+                            data[`큰수값_${index + 1}`] = num;
+                        });
+                    }
+                } catch (numberError) {
+                    console.warn('숫자 매칭 중 오류:', numberError, 'Line:', line);
+                }
+
+            } catch (lineError) {
+                console.warn('라인 처리 중 오류:', lineError, 'Line:', line);
             }
         });
 
-        // 큰 숫자 (190,499,169,150 같은) 별도 처리
-        const bigNumbers = line.match(/\b\d{3,}(?:,\d{3})*\b/g);
-        if (bigNumbers) {
-            bigNumbers.forEach((num, index) => {
-                data[`큰수값_${index + 1}`] = num;
-            });
-        }
-    });
+        console.log('자동 파싱 결과:', Object.keys(data).length, '개 항목 추출');
+        return data;
 
-    return data;
+    } catch (error) {
+        console.error('parseStructuredData 전체 오류:', error);
+        console.log('자동 파싱 실패 - 빈 객체 반환');
+        return {};
+    }
 }
 
 // 4. 테이블 형태 포매팅 함수
@@ -1068,12 +534,18 @@ function formatAsTable(data) {
     return table.join('\n');
 }
 
-// 5. HTML 미리보기 생성 함수
-function generateHTMLPreview(data) {
+// 5. HTML 편집 가능한 미리보기 생성 함수 (하이브리드 버전)
+function generateHTMLPreview(data, originalText = '') {
     const entries = Object.entries(data);
-    if (entries.length === 0) {
-        return '<div class="ocr-preview"><h3>OCR 분석 결과</h3><p>데이터 없음</p></div>';
-    }
+    const hasAutoData = entries.length > 0;
+
+    // 자동 파싱 실패 시 기본 빈 행들 생성
+    const defaultRows = hasAutoData ? entries : [
+        ['항목 1', '값 1'],
+        ['항목 2', '값 2'],
+        ['항목 3', '값 3'],
+        ['항목 4', '값 4']
+    ];
 
     let html = `
         <div class="ocr-preview" style="
@@ -1084,8 +556,56 @@ function generateHTMLPreview(data) {
             margin: 10px 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         ">
-            <h3 style="color: #495057; margin-bottom: 15px;">📊 OCR 분석 결과</h3>
-            <table style="
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #495057; margin: 0;">📊 OCR 분석 결과 (편집 가능)</h3>
+                <span style="font-size: 12px; color: ${hasAutoData ? '#28a745' : '#ffc107'}; font-weight: 600;">
+                    ${hasAutoData ? '✅ 자동 파싱 성공' : '⚠️ 자동 파싱 실패 - 수동 입력 필요'}
+                </span>
+            </div>
+            
+            <!-- OCR 원본 텍스트 영역 -->
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h4 style="color: #6c757d; margin: 0; font-size: 14px;">📄 OCR 원본 텍스트</h4>
+                    <button onclick="toggleOriginalText()" id="toggleTextBtn" style="
+                        background: #6c757d; 
+                        color: white; 
+                        border: none; 
+                        padding: 4px 8px; 
+                        border-radius: 4px; 
+                        cursor: pointer;
+                        font-size: 12px;
+                    ">📁 펼치기</button>
+                </div>
+                <div id="originalTextArea" style="
+                    display: none;
+                    background: white; 
+                    border: 1px solid #ddd; 
+                    border-radius: 6px; 
+                    padding: 12px; 
+                    max-height: 150px; 
+                    overflow-y: auto;
+                    font-family: monospace;
+                    font-size: 12px;
+                    white-space: pre-wrap;
+                    margin-bottom: 10px;
+                    position: relative;
+                ">${originalText || 'OCR 원본 텍스트가 없습니다.'}
+                    <button onclick="copyOriginalText()" style="
+                        position: absolute;
+                        top: 8px;
+                        right: 8px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: 10px;
+                    " title="복사">📋</button>
+                </div>
+            </div>
+            <table id="editableOCRTable" style="
                 width: 100%; 
                 border-collapse: collapse; 
                 background: white;
@@ -1095,19 +615,69 @@ function generateHTMLPreview(data) {
             ">
                 <thead>
                     <tr style="background: #6c757d; color: white;">
-                        <th style="padding: 12px; text-align: left; font-weight: 600;">항목</th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600;">값</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; width: 35%;">항목</th>
+                        <th style="padding: 12px; text-align: left; font-weight: 600; width: 45%;">값</th>
+                        <th style="padding: 12px; text-align: center; font-weight: 600; width: 20%;">작업</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
 
-    entries.forEach(([key, value], index) => {
+    defaultRows.forEach(([key, value], index) => {
         const rowColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+        const keyPlaceholder = hasAutoData ? key : `항목명 입력`;
+        const valuePlaceholder = hasAutoData ? value : `값 입력`;
+        const keyValue = hasAutoData ? key : '';
+        const valueValue = hasAutoData ? value : '';
+
         html += `
-            <tr style="background: ${rowColor};">
-                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; font-weight: 500;">${key}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #0066cc; font-weight: 600;">${value}</td>
+            <tr style="background: ${rowColor};" data-row="${index}">
+                <td style="padding: 8px; border-bottom: 1px solid #dee2e6;">
+                    <input type="text" value="${keyValue}" placeholder="${keyPlaceholder}" style="
+                        width: 100%; 
+                        border: 1px solid #ddd; 
+                        padding: 6px; 
+                        border-radius: 4px;
+                        font-size: 14px;
+                        background: white;
+                    " class="key-input" />
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #dee2e6;">
+                    <input type="text" value="${valueValue}" placeholder="${valuePlaceholder}" style="
+                        width: 100%; 
+                        border: 1px solid #ddd; 
+                        padding: 6px; 
+                        border-radius: 4px;
+                        font-size: 14px;
+                        color: #0066cc; 
+                        font-weight: 600;
+                        background: white;
+                    " class="value-input" />
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: center;">
+                    <button onclick="addTableRow(this)" style="
+                        background: #28a745; 
+                        color: white; 
+                        border: none; 
+                        padding: 4px 8px; 
+                        margin: 0 2px;
+                        border-radius: 4px; 
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                    " title="행 추가">+</button>
+                    <button onclick="removeTableRow(this)" style="
+                        background: #dc3545; 
+                        color: white; 
+                        border: none; 
+                        padding: 4px 8px; 
+                        margin: 0 2px;
+                        border-radius: 4px; 
+                        cursor: pointer;
+                        font-size: 16px;
+                        font-weight: bold;
+                    " title="행 삭제">×</button>
+                </td>
             </tr>
         `;
     });
@@ -1115,14 +685,289 @@ function generateHTMLPreview(data) {
     html += `
                 </tbody>
             </table>
-            <div style="margin-top: 15px; font-size: 0.9em; color: #6c757d;">
+            <div style="margin-top: 15px; text-align: center;">
+                <button onclick="addTableRow()" style="
+                    background: #007bff; 
+                    color: white; 
+                    border: none; 
+                    padding: 10px 20px; 
+                    margin: 5px;
+                    border-radius: 6px; 
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">+ 새 항목 추가</button>
+                <button onclick="saveTableData()" style="
+                    background: #28a745; 
+                    color: white; 
+                    border: none; 
+                    padding: 10px 20px; 
+                    margin: 5px;
+                    border-radius: 6px; 
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">💾 저장 (JSON)</button>
+            </div>
+            <div style="margin-top: 15px; font-size: 0.9em; color: #6c757d; text-align: center;">
                 <span>📅 분석 시간: ${new Date().toLocaleString()}</span> | 
-                <span>📈 총 ${entries.length}개 데이터 추출</span>
+                <span>📈 ${hasAutoData ? `자동 추출: ${entries.length}개` : '수동 입력 모드'}</span>
+                ${!hasAutoData ? '<br><small style="color: #ffc107;">💡 원본 텍스트를 참고하여 수동으로 입력하세요</small>' : ''}
             </div>
         </div>
     `;
 
     return html;
+}
+
+// 테이블 행 추가 함수
+function addTableRow(button) {
+    const table = document.getElementById('editableOCRTable');
+    const tbody = table.querySelector('tbody');
+    const rowCount = tbody.children.length;
+
+    let targetRow;
+    if (button && button.closest) {
+        // 특정 행의 + 버튼을 클릭한 경우, 해당 행 다음에 추가
+        targetRow = button.closest('tr');
+    } else {
+        // "새 항목 추가" 버튼을 클릭한 경우, 맨 끝에 추가
+        targetRow = null;
+    }
+
+    const rowColor = rowCount % 2 === 0 ? '#ffffff' : '#f8f9fa';
+    const newRow = document.createElement('tr');
+    newRow.style.background = rowColor;
+    newRow.setAttribute('data-row', rowCount);
+
+    newRow.innerHTML = `
+        <td style="padding: 8px; border-bottom: 1px solid #dee2e6;">
+            <input type="text" value="" placeholder="새 항목명" style="
+                width: 100%; 
+                border: 1px solid #ddd; 
+                padding: 6px; 
+                border-radius: 4px;
+                font-size: 14px;
+                background: white;
+            " class="key-input" />
+        </td>
+        <td style="padding: 8px; border-bottom: 1px solid #dee2e6;">
+            <input type="text" value="" placeholder="새 값" style="
+                width: 100%; 
+                border: 1px solid #ddd; 
+                padding: 6px; 
+                border-radius: 4px;
+                font-size: 14px;
+                color: #0066cc; 
+                font-weight: 600;
+                background: white;
+            " class="value-input" />
+        </td>
+        <td style="padding: 8px; border-bottom: 1px solid #dee2e6; text-align: center;">
+            <button onclick="addTableRow(this)" style="
+                background: #28a745; 
+                color: white; 
+                border: none; 
+                padding: 4px 8px; 
+                margin: 0 2px;
+                border-radius: 4px; 
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+            " title="행 추가">+</button>
+            <button onclick="removeTableRow(this)" style="
+                background: #dc3545; 
+                color: white; 
+                border: none; 
+                padding: 4px 8px; 
+                margin: 0 2px;
+                border-radius: 4px; 
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+            " title="행 삭제">×</button>
+        </td>
+    `;
+
+    if (targetRow) {
+        // 특정 행 다음에 삽입
+        targetRow.parentNode.insertBefore(newRow, targetRow.nextSibling);
+    } else {
+        // 테이블 끝에 추가
+        tbody.appendChild(newRow);
+    }
+
+    // 새로 추가된 첫 번째 입력 필드에 포커스
+    const firstInput = newRow.querySelector('.key-input');
+    if (firstInput) {
+        firstInput.focus();
+    }
+
+    // 행 번호 재정렬
+    updateRowNumbers();
+
+    console.log('새 행이 추가되었습니다.');
+}
+
+// 테이블 행 제거 함수
+function removeTableRow(button) {
+    const row = button.closest('tr');
+    const table = document.getElementById('editableOCRTable');
+    const tbody = table.querySelector('tbody');
+
+    // 최소 1개 행은 유지
+    if (tbody.children.length <= 1) {
+        alert('최소 1개의 행은 유지되어야 합니다.');
+        return;
+    }
+
+    // 행 제거 확인
+    const keyInput = row.querySelector('.key-input');
+    const valueInput = row.querySelector('.value-input');
+    const keyValue = keyInput ? keyInput.value : '';
+    const valueValue = valueInput ? valueInput.value : '';
+
+    if (keyValue || valueValue) {
+        if (!confirm(`"${keyValue || '(빈 항목)'}: ${valueValue || '(빈 값)'}" 행을 삭제하시겠습니까?`)) {
+            return;
+        }
+    }
+
+    row.remove();
+
+    // 행 번호 재정렬
+    updateRowNumbers();
+
+    console.log('행이 삭제되었습니다.');
+}
+
+// 행 번호 및 배경색 재정렬 함수
+function updateRowNumbers() {
+    const table = document.getElementById('editableOCRTable');
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+
+    rows.forEach((row, index) => {
+        row.setAttribute('data-row', index);
+        const rowColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+        row.style.background = rowColor;
+    });
+}
+
+// 테이블 데이터 수집 함수
+function collectTableData() {
+    const table = document.getElementById('editableOCRTable');
+    if (!table) {
+        console.error('편집 가능한 테이블을 찾을 수 없습니다.');
+        return {};
+    }
+
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const data = {};
+
+    rows.forEach((row, index) => {
+        const keyInput = row.querySelector('.key-input');
+        const valueInput = row.querySelector('.value-input');
+
+        if (keyInput && valueInput) {
+            const key = keyInput.value.trim();
+            const value = valueInput.value.trim();
+
+            // 빈 항목은 제외 (키와 값 모두 비어있는 경우)
+            if (key || value) {
+                // 중복 키 처리: 동일한 키가 있으면 번호를 추가
+                let finalKey = key || `항목_${index + 1}`;
+                let counter = 1;
+                while (data.hasOwnProperty(finalKey)) {
+                    finalKey = `${key || `항목_${index + 1}`}_${counter}`;
+                    counter++;
+                }
+
+                data[finalKey] = value || '';
+            }
+        }
+    });
+
+    return data;
+}
+
+// 테이블 데이터 저장 함수 (JSON으로 콘솔 출력)
+function saveTableData() {
+    try {
+        const data = collectTableData();
+        const dataCount = Object.keys(data).length;
+
+        if (dataCount === 0) {
+            alert('저장할 데이터가 없습니다.');
+            return;
+        }
+
+        // JSON 형태로 콘솔에 출력
+        const jsonData = {
+            timestamp: new Date().toISOString(),
+            dataCount: dataCount,
+            ocrResults: data
+        };
+
+        console.log('=== OCR 분석 결과 (JSON) ===');
+        console.log(JSON.stringify(jsonData, null, 2));
+        console.log('===========================');
+
+        // 사용자에게 저장 완료 알림
+        alert(`✅ 저장 완료!\n\n📊 총 ${dataCount}개 항목이 JSON 형태로 콘솔에 출력되었습니다.\n\n개발자 도구(F12)의 Console 탭에서 확인하세요.`);
+
+        // 콘솔 메시지도 추가
+        console.log(`📝 저장 완료: ${dataCount}개 항목이 JSON으로 출력되었습니다.`);
+
+    } catch (error) {
+        console.error('데이터 저장 중 오류가 발생했습니다:', error);
+        alert('❌ 데이터 저장 중 오류가 발생했습니다.\n\n자세한 내용은 개발자 도구의 Console을 확인하세요.');
+    }
+}
+
+// 원본 텍스트 영역 토글 함수
+function toggleOriginalText() {
+    const textArea = document.getElementById('originalTextArea');
+    const toggleBtn = document.getElementById('toggleTextBtn');
+
+    if (textArea && toggleBtn) {
+        const isHidden = textArea.style.display === 'none';
+        textArea.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.textContent = isHidden ? '📂 접기' : '📁 펼치기';
+
+        console.log(`원본 텍스트 영역 ${isHidden ? '펼침' : '접음'}`);
+    }
+}
+
+// 원본 텍스트 복사 함수
+function copyOriginalText() {
+    const textArea = document.getElementById('originalTextArea');
+    if (textArea) {
+        // 버튼 텍스트 제외하고 원본 텍스트만 추출
+        const fullText = textArea.textContent || textArea.innerText;
+        const textToCopy = fullText.replace('📋', '').trim();
+
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            console.log('원본 텍스트가 클립보드에 복사되었습니다.');
+
+            // 일시적으로 버튼 텍스트 변경
+            const copyBtn = textArea.querySelector('button');
+            if (copyBtn) {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅';
+                copyBtn.style.background = '#28a745';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '#007bff';
+                }, 1500);
+            }
+        }).catch(err => {
+            console.error('텍스트 복사 실패:', err);
+            alert('텍스트 복사에 실패했습니다.');
+        });
+    }
 }
 
 // HTML 미리보기 표시 함수
