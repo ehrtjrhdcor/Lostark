@@ -1,17 +1,36 @@
 {
+  "version": 2,
   "functions": {
     "api/ocr.js": {
       "maxDuration": 30
+    },
+    "api/records.js": {
+      "maxDuration": 10
+    },
+    "api/save-record.js": {
+      "maxDuration": 30
     }
   },
+  "builds": [
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
-    },
+    }
+  ],
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/public/$1"
+      "src": "/((?!api/).*)",
+      "dest": "/public/$1"
     }
   ]
 }

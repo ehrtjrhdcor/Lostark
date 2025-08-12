@@ -23,6 +23,7 @@ const { testConnection, executeQuery } = require('./config/database');  // MySQL
 const { LOSTARK_API } = require('./config/constants');     // 로스트아크 API 상수
 const cacheManager = require('./config/cache-manager');    // 캐시 매니저
 const { nanoid } = require('nanoid');       // 고유 ID 생성
+const { uploadImage, testCloudinaryConnection } = require('./config/cloudinary'); // Cloudinary 이미지 업로드
 
 const app = express();
 const PORT = process.env.PORT || 1707;  // 환경변수 또는 기본 포트 1707
@@ -904,18 +905,44 @@ app.post('/api/save-record', upload.single('image'), async (req, res) => {
 
         // 이미지 파일 처리
         let imagePath = null;
+        let imagePublicId = null;
+        
         if (req.file) {
-            // 새로운 파일명 생성: img_YYYYMMDD_nanoid(6).ext
-            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-            const fileExtension = path.extname(req.file.originalname);
-            const newFileName = `img_${today}_${nanoid(6)}${fileExtension}`;
-            const newFilePath = path.join(uploadDir, newFileName);
+            try {
+                // Cloudinary에 이미지 업로드
+                console.log(`📤 Cloudinary 업로드 시작: ${req.file.originalname}`);
+                
+                const uploadResult = await uploadImage(req.file.path, {
+                    public_id: `lostark-ocr/${nanoid(10)}`, // 고유한 public_id 생성
+                    folder: 'lostark-ocr',
+                    tags: [characterName, raidName, difficulty].filter(Boolean)
+                });
 
-            // 파일 이름 변경
-            fs.renameSync(req.file.path, newFilePath);
-            imagePath = `uploads/${newFileName}`;
+                if (uploadResult.success) {
+                    imagePath = uploadResult.url;
+                    imagePublicId = uploadResult.public_id;
+                    console.log(`✅ Cloudinary 업로드 성공: ${imagePath}`);
+                    
+                    // 로컬 임시 파일 삭제
+                    fs.unlinkSync(req.file.path);
+                    console.log(`🗑️ 로컬 임시 파일 삭제: ${req.file.path}`);
+                } else {
+                    throw new Error(uploadResult.error);
+                }
+                
+            } catch (uploadError) {
+                console.error('❌ Cloudinary 업로드 실패:', uploadError);
+                
+                // Cloudinary 실패 시 로컬에 저장 (백업)
+                const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                const fileExtension = path.extname(req.file.originalname);
+                const newFileName = `img_${today}_${nanoid(6)}${fileExtension}`;
+                const newFilePath = path.join(uploadDir, newFileName);
 
-            console.log(`📷 이미지 저장: ${imagePath}`);
+                fs.renameSync(req.file.path, newFilePath);
+                imagePath = `uploads/${newFileName}`;
+                console.log(`📷 로컬 백업 저장: ${imagePath}`);
+            }
         }
 
         // 데이터베이스 트랜잭션 시작
@@ -927,8 +954,8 @@ app.post('/api/save-record', upload.single('image'), async (req, res) => {
             INSERT INTO ocr_records (
                 id, character_name, character_class, raid_name, 
                 gate_number, difficulty, combat_time, 
-                image_url, raw_ocr_data, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                image_url, image_public_id, raw_ocr_data, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         `;
 
         await executeQuery(insertRecordQuery, [
@@ -940,6 +967,7 @@ app.post('/api/save-record', upload.single('image'), async (req, res) => {
             difficulty || null,
             combatTime || null,
             imagePath,
+            imagePublicId,
             JSON.stringify(parsedOcrData)
         ]);
 
@@ -1023,4 +1051,7 @@ app.listen(PORT, async () => {
 
     // MySQL 연결 테스트
     await testConnection();
+    
+    // Cloudinary 연결 테스트
+    await testCloudinaryConnection();
 });

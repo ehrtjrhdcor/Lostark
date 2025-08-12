@@ -1,18 +1,32 @@
 const mysql = require('mysql2/promise');
+require('dotenv').config();
 
 /**
  * MySQL 데이터베이스 연결 설정
+ * 환경변수 또는 로컬 설정 사용
  */
-const dbConfig = {
-    host: 'localhost',          // MySQL 서버 주소
-    port: 3306,                 // MySQL 포트 (기본: 3306)
-    user: 'root',               // 사용자명
-    password: 'ahsld123!@',               // 비밀번호 (필요시 입력)
-    database: 'ehrtjrhdcor',        // 데이터베이스명
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-};
+const dbConfig = process.env.DATABASE_URL 
+    ? {
+        // PlanetScale/Production 환경 - CONNECTION_URL 사용
+        uri: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        },
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+    }
+    : {
+        // 로컬 개발 환경
+        host: 'localhost',
+        port: 3306,
+        user: 'root',
+        password: 'ahsld123!@',
+        database: 'ehrtjrhdcor',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+    };
 
 /**
  * 연결 풀 생성
