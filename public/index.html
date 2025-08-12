@@ -22,9 +22,7 @@
         <div class="sidebar">
             <ul>
                 <li><a href="#" onclick="showPage('home')" class="active">홈</a></li>
-                <!-- <li><a href="#" onclick="showPage('about')">캐릭터 검색</a></li> -->
                 <li><a href="#" onclick="showPage('features')">정보 입력</a></li>
-                <li><a href="#" onclick="showPage('getting-started')">시작하기</a></li>
                 <li><a href="#" onclick="showPage('contact')">연락처</a></li>
             </ul>
         </div>
@@ -39,44 +37,6 @@
                 </div>
             </div>
 
-            <!-- 캐릭터 검색 페이지 -->
-            <div class="page" id="about">
-                <div class="content-section">
-                    <h2>🏹 로스트아크 캐릭터 검색</h2>
-                    <p>로스트아크 API를 사용하여 캐릭터 정보를 검색합니다.</p>
-
-                    <!-- API 키 입력 섹션 -->
-                    <div class="api-key-section d-none">
-                        <h3>1. API 키 설정</h3>
-                        <div class="api-input-box">
-                            <input type="password" id="aboutApiKeyInput" placeholder="로스트아크 API 키를 입력하세요"
-                                class="search-input">
-                        </div>
-                        <small class="api-key-notice">
-                            API 키는 <a href="https://developer-lostark.game.onstove.com" target="_blank">로스트아크 개발자
-                                페이지</a>에서 발급받을 수 있습니다.
-                        </small>
-                    </div>
-
-                    <!-- 캐릭터 검색 섹션 -->
-                    <div class="character-search-section">
-                        <h3>캐릭터 검색</h3>
-                        <div class="search-container character-search-container">
-                            <div class="search-box">
-                                <input type="text" id="characterSearchInput" class="search-input"
-                                    placeholder="캐릭터명을 입력하세요...">
-                                <button id="characterSearchBtn" class="search-button">검색</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- API 연결 결과 -->
-                    <div id="aboutApiResult" class="analysis-result hidden"></div>
-
-                    <!-- 캐릭터 검색 결과 -->
-                    <div id="characterSearchResult" class="analysis-result hidden"></div>
-                </div>
-            </div>
 
             <!-- API 연동 페이지 -->
             <div class="page" id="features">
@@ -115,31 +75,6 @@
                 </div>
             </div>
 
-            <!-- 시작하기 페이지 -->
-            <div class="page" id="getting-started">
-                <div class="content-section">
-                    <h2>시작하기</h2>
-                    <p>이 웹페이지를 실행하려면 다음 단계를 따라주세요:</p>
-                    <ol>
-                        <li><code>npm install</code> 명령어로 필요한 의존성을 설치하세요</li>
-                        <li><code>npm start</code> 명령어로 서버를 시작하세요</li>
-                        <li>브라우저에서 <a href="http://localhost:1707">http://localhost:1707</a>를 방문하세요</li>
-                    </ol>
-
-                    <!-- 서버 연결 테스트 버튼 -->
-                    <div
-                        style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                        <h4>서버 연결 테스트</h4>
-                        <p style="margin-bottom: 15px; color: #666;">서버가 정상적으로 실행되고 있는지 확인해보세요.</p>
-                        <button type="button" id="serverTestBtn" onclick="testServerConnection()"
-                            style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                            🔌 서버 연결 테스트
-                        </button>
-                        <div id="serverTestResult" style="margin-top: 15px;"></div>
-                    </div>
-
-                </div>
-            </div>
 
             <!-- 연락처 페이지 -->
             <div class="page" id="contact">
@@ -181,14 +116,6 @@
 
                     <!-- 오른쪽 영역 -->
                     <div class="modal-right-section">
-                        <!-- 오른쪽 이미지 업로드 영역 -->
-                        <div class="upload-area-small">
-                            <div class="upload-box-small" id="rightUploadBox">
-                                <div class="upload-icon-small">📁</div>
-                                <span class="upload-text-small">이미지 업로드</span>
-                                <input type="file" id="rightFileInput" accept="image/*" class="hidden">
-                            </div>
-                        </div>
 
                         <!-- 오른쪽 메인 컨텐츠 영역 -->
                         <div class="right-content-area">
@@ -201,7 +128,7 @@
                     <button type="button" class="modal-btn cancel-btn" onclick="closeImageAnalysisModal()">
                         취소
                     </button>
-                    <button type="button" class="modal-btn save-btn" onclick="saveModalData()">
+                    <button type="button" class="modal-btn save-btn" onclick="showSaveModal()">
                         저장
                     </button>
                 </div>

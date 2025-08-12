@@ -60,52 +60,6 @@ function initializeEventListeners() {
         });
     }
 
-    // 캐릭터 검색 관련 요소
-    const aboutApiKeyInput = document.getElementById('aboutApiKeyInput');
-    const characterSearchInput = document.getElementById('characterSearchInput');
-    const characterSearchBtn = document.getElementById('characterSearchBtn');
-
-    // 캐릭터 검색 버튼
-    if (characterSearchBtn && characterSearchInput) {
-        characterSearchBtn.addEventListener('click', function () {
-            const characterName = characterSearchInput.value.trim();
-
-            // Vercel 환경 확인
-            const isVercel = window.location.hostname.includes('vercel') ||
-                window.location.hostname.includes('netlify');
-
-            if (!isVercel && aboutApiKeyInput) {
-                // 로컬 환경에서만 API 키 필요
-                const apiKey = aboutApiKeyInput.value.trim();
-                if (!apiKey) {
-                    alert('API 키를 입력해주세요.');
-                    return;
-                }
-                window.currentApiKey = apiKey;
-            }
-
-            if (!characterName) {
-                alert('캐릭터명을 입력해주세요.');
-                return;
-            }
-
-            searchCharacter(characterName);
-        });
-
-        // 엔터 키 검색 지원
-        characterSearchInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                characterSearchBtn.click();
-            }
-        });
-
-        // API 키 입력창에서도 엔터 키 지원
-        aboutApiKeyInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                characterSearchInput.focus();
-            }
-        });
-    }
 }
 
 // 모달 관련 이벤트 초기화
@@ -144,11 +98,6 @@ async function loadApiKey() {
                 apiKeyInput.value = data.apiKey;
             }
 
-            // about 페이지 API 키 입력창
-            const aboutApiKeyInput = document.getElementById('aboutApiKeyInput');
-            if (aboutApiKeyInput) {
-                aboutApiKeyInput.value = data.apiKey;
-            }
 
             // 전역 변수에도 저장
             window.currentApiKey = data.apiKey;
@@ -165,19 +114,9 @@ async function loadApiKey() {
             apiKeyInput.value = defaultApiKey;
         }
 
-        const aboutApiKeyInput = document.getElementById('aboutApiKeyInput');
-        if (aboutApiKeyInput) {
-            aboutApiKeyInput.value = defaultApiKey;
-        }
 
         window.currentApiKey = defaultApiKey;
         console.log('기본 API 키가 설정되었습니다.');
     }
 }
 
-/**
- * 서버 연결 테스트 함수
- */
-function testServerConnection() {
-    openImageAnalysisModal("다시시작하는창술사", "4막", "더 퍼스트");
-}

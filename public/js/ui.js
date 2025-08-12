@@ -46,39 +46,3 @@ function showApiError(message) {
     `;
 }
 
-// about 페이지 API 로딩 표시
-function showAboutApiLoading() {
-    const aboutApiResult = document.getElementById('aboutApiResult');
-    aboutApiResult.classList.remove('hidden');
-    aboutApiResult.innerHTML = `
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <h3>API 연결 테스트 중...</h3>
-            <p>로스트아크 API에 연결하고 있습니다.</p>
-        </div>
-    `;
-}
-
-// about 페이지 API 에러 표시
-function showAboutApiError(message) {
-    const aboutApiResult = document.getElementById('aboutApiResult');
-    aboutApiResult.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #e74c3c;">
-            <h3>❌ API 연결 실패</h3>
-            <p>${message}</p>
-            <small>API 키를 확인하고 다시 시도해주세요.</small>
-        </div>
-    `;
-}
-
-// 캐릭터 검색 에러 표시
-function showCharacterSearchError(message) {
-    const characterSearchResult = document.getElementById('characterSearchResult');
-    characterSearchResult.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #e74c3c;">
-            <h3>❌ 검색 실패</h3>
-            <p>${message}</p>
-            <small>캐릭터명을 확인하고 다시 시도해주세요.</small>
-        </div>
-    `;
-}

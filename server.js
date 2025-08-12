@@ -19,9 +19,10 @@ const path = require('path');
 const multer = require('multer');           // 파일 업로드 처리
 const { spawn } = require('child_process');  // Python 프로세스 실행
 const fs = require('fs');
-const { testConnection } = require('./config/database');  // MySQL 연결
+const { testConnection, executeQuery } = require('./config/database');  // MySQL 연결
 const { LOSTARK_API } = require('./config/constants');     // 로스트아크 API 상수
 const cacheManager = require('./config/cache-manager');    // 캐시 매니저
+const { nanoid } = require('nanoid');       // 고유 ID 생성
 
 const app = express();
 const PORT = process.env.PORT || 1707;  // 환경변수 또는 기본 포트 1707
@@ -122,7 +123,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/process-images', async (req, res) => {
     try {
         console.log('🖼️ 이미지 OCR 처리 시작...');
-        
+
         // Python OCR 스크립트 실행
         const pythonProcess = spawn('python', ['ocr_processor.py'], {
             cwd: __dirname,
@@ -155,13 +156,13 @@ app.post('/api/process-images', async (req, res) => {
 
                 // JSON 결과 파일 읽기
                 const resultPath = path.join(__dirname, 'game_ocr_results.json');
-                
+
                 if (fs.existsSync(resultPath)) {
                     const resultData = fs.readFileSync(resultPath, 'utf-8');
                     const ocrResults = JSON.parse(resultData);
-                    
+
                     console.log('✅ OCR 처리 완료:', ocrResults.combined_stats);
-                    
+
                     return res.json({
                         success: true,
                         message: 'OCR 분석 완료',
@@ -375,6 +376,7 @@ app.post('/api/lostark/character', async (req, res) => {
     try {
         // 1단계: 캐시된 형제 캐릭터 목록 확인
         let siblingsData = await cacheManager.getCachedSiblings(characterName);
+        console.log('siblingsData', siblingsData)
         let fromCache = true;
 
         if (siblingsData.length === 0) {
@@ -630,6 +632,164 @@ app.delete('/api/cache/clear', async (req, res) => {
         res.status(500).json({
             success: false,
             error: '캐시 초기화 실패',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * OCR 기록 저장 API
+ * 
+ * POST /api/save-record
+ * - OCR 분석 결과를 데이터베이스에 저장
+ * - 이미지 파일은 로컬에 저장하고 경로만 DB에 저장
+ */
+app.post('/api/save-record', upload.single('image'), async (req, res) => {
+    let connection;
+    try {
+        console.log('📊 OCR 기록 저장 요청 수신...');
+        console.log('요청 데이터:', req.body);
+        console.log('업로드된 파일:', req.file);
+
+        // JSON 데이터 파싱
+        const {
+            characterName,
+            characterClass,
+            raidName,
+            gateNumber,
+            difficulty,
+            combatTime,
+            ocrData
+        } = req.body;
+
+        // 필수 필드 검증
+        if (!characterName || !raidName) {
+            return res.status(400).json({
+                success: false,
+                error: '캐릭터명과 레이드명은 필수입니다.'
+            });
+        }
+
+        // OCR 데이터 파싱 (문자열로 전송된 경우)
+        let parsedOcrData = {};
+        try {
+            parsedOcrData = typeof ocrData === 'string' ? JSON.parse(ocrData) : ocrData;
+        } catch (parseError) {
+            console.error('OCR 데이터 파싱 오류:', parseError);
+            parsedOcrData = {};
+        }
+
+        // 이미지 파일 처리
+        let imagePath = null;
+        if (req.file) {
+            // 새로운 파일명 생성: img_YYYYMMDD_nanoid(6).ext
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const fileExtension = path.extname(req.file.originalname);
+            const newFileName = `img_${today}_${nanoid(6)}${fileExtension}`;
+            const newFilePath = path.join(uploadDir, newFileName);
+
+            // 파일 이름 변경
+            fs.renameSync(req.file.path, newFilePath);
+            imagePath = `uploads/${newFileName}`;
+
+            console.log(`📷 이미지 저장: ${imagePath}`);
+        }
+
+        // 데이터베이스 트랜잭션 시작
+        connection = await executeQuery('START TRANSACTION');
+
+        // 1. 메인 레코드 저장 (ocr_records 테이블)
+        const recordId = nanoid(10); // UUID 대신 nanoid 사용
+        const insertRecordQuery = `
+            INSERT INTO ocr_records (
+                id, character_name, character_class, raid_name, 
+                gate_number, difficulty, combat_time, 
+                image_url, raw_ocr_data, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `;
+
+        await executeQuery(insertRecordQuery, [
+            recordId,
+            characterName,
+            characterClass || null,
+            raidName,
+            gateNumber ? parseInt(gateNumber) : null,
+            difficulty || null,
+            combatTime || null,
+            imagePath,
+            JSON.stringify(parsedOcrData)
+        ]);
+
+        console.log(`✅ 메인 레코드 저장 완료: ${recordId}`);
+
+        // 2. 스탯 데이터 저장 (ocr_stats 테이블)
+        let statsCount = 0;
+        if (parsedOcrData && Object.keys(parsedOcrData).length > 0) {
+            const insertStatQuery = `
+                INSERT INTO ocr_stats (
+                    id, record_id, stat_name, stat_value, stat_category, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            `;
+
+            for (const [statName, statValue] of Object.entries(parsedOcrData)) {
+                if (statValue !== null && statValue !== undefined) {
+                    const statId = nanoid(10);
+
+                    // 스탯 카테고리 자동 분류
+                    let category = 'general';
+                    if (statName.includes('피해') || statName.includes('데미지')) {
+                        category = 'damage';
+                    } else if (statName.includes('시간') || statName.includes('Time')) {
+                        category = 'time';
+                    } else if (statName.includes('회복') || statName.includes('힐')) {
+                        category = 'healing';
+                    }
+
+                    await executeQuery(insertStatQuery, [
+                        statId,
+                        recordId,
+                        statName,
+                        String(statValue),
+                        category
+                    ]);
+
+                    statsCount++;
+                }
+            }
+        }
+
+        // 트랜잭션 커밋
+        await executeQuery('COMMIT');
+
+        console.log(`✅ OCR 기록 저장 완료: 메인 1건, 스탯 ${statsCount}건`);
+
+        res.json({
+            success: true,
+            message: 'OCR 기록이 성공적으로 저장되었습니다.',
+            data: {
+                recordId,
+                characterName,
+                raidName,
+                statsCount,
+                imagePath,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        // 트랜잭션 롤백
+        if (connection) {
+            try {
+                await executeQuery('ROLLBACK');
+            } catch (rollbackError) {
+                console.error('롤백 오류:', rollbackError);
+            }
+        }
+
+        console.error('OCR 기록 저장 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: 'OCR 기록 저장 중 오류가 발생했습니다.',
             details: error.message
         });
     }

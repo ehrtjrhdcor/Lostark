@@ -1,7 +1,16 @@
 // 모달 관련 기능
 
 // 이미지 분석 모달 열기
-function openImageAnalysisModal(characterName, raid, difficulty, characterClass) {
+function openImageAnalysisModal(characterName, raid, difficulty, characterClass, selectedGate) {
+    // 캐릭터 선택 정보를 전역 변수에 저장
+    selectedCharacterInfo = {
+        characterName: characterName || '',
+        characterClass: characterClass || '',
+        raidName: raid || '',
+        gateNumber: selectedGate || '',
+        difficulty: difficulty || ''
+    };
+
     const modal = document.getElementById('imageAnalysisModal');
     const modalCharacterName = document.getElementById('modalCharacterName');
     const modalRaidName = document.getElementById('modalRaidName');
@@ -52,6 +61,15 @@ function closeImageAnalysisModal() {
         rightContentArea.innerHTML = '';
     }
 
+    // 왼쪽 이미지 미리보기 제거
+    const existingImageContainer = document.querySelector('.left-image-preview');
+    if (existingImageContainer) {
+        existingImageContainer.remove();
+    }
+
+    // 현재 이미지 파일 초기화
+    currentImageFile = null;
+
     // 기존 모달 요소들도 초기화 (호환성 유지)
     const modalFileInput = document.getElementById('modalFileInput');
     const modalImagePreview = document.getElementById('modalImagePreview');
@@ -65,7 +83,6 @@ function closeImageAnalysisModal() {
 // 모달 내 파일 업로드 초기화
 function initModalFileUpload() {
     initLeftUpload();
-    initRightUpload();
 }
 
 // 왼쪽 이미지 업로드 초기화
@@ -90,27 +107,6 @@ function initLeftUpload() {
 
 }
 
-// 오른쪽 이미지 업로드 초기화
-function initRightUpload() {
-    const rightUploadBox = document.getElementById('rightUploadBox');
-    const rightFileInput = document.getElementById('rightFileInput');
-
-    if (!rightUploadBox || !rightFileInput) return;
-
-    // 오른쪽 업로드 박스 클릭
-    rightUploadBox.addEventListener('click', function () {
-        rightFileInput.click();
-    });
-
-    // 오른쪽 파일 선택 이벤트
-    rightFileInput.addEventListener('change', function (e) {
-        const file = e.target.files[0];
-        if (file) {
-            handleRightImageUpload(file);
-        }
-    });
-
-}
 
 // 왼쪽 이미지 업로드 처리 (통계용)
 function handleLeftImageUpload(file) {
@@ -119,38 +115,33 @@ function handleLeftImageUpload(file) {
         return;
     }
 
-    // 이미지 전처리 시작
-    preprocessImage(file);
-}
-
-// 이미지 전처리 및 OCR 분석 함수
-function preprocessImage(file) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
 
     img.onload = function () {
-        // 캔버스 크기 설정
         canvas.width = img.width;
         canvas.height = img.height;
-
-        // 이미지를 캔버스에 그리기
         ctx.drawImage(img, 0, 0);
+
+        // 이미지를 왼쪽 영역에 표시
+        displayImageInLeftArea(img.src, file.name);
 
         console.log('이미지 로드 완료! OCR 분석 시작...');
         showLeftUploadStatus('OCR 분석 중...', 'loading');
-
-        // 바로 OCR 분석
         performOCR(canvas);
     };
 
-    // 파일을 이미지로 로드
+    // 현재 이미지 파일을 전역 변수에 저장
+    currentImageFile = file;
+    
     const reader = new FileReader();
     reader.onload = function (e) {
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
+
 
 // Canvas를 페이지에 표시하는 함수
 function displayCanvasForSelection(canvas) {
@@ -224,10 +215,7 @@ function showOCRButton(canvas, selectionRect) {
 
 // 선택 영역 처리 메인 함수
 function processSelectedArea(originalCanvas, selectionRect) {
-
-    applyAdvancedPreprocessing(originalCanvas).then((processedCanvas) => { performOCR(processedCanvas) })
-
-
+    performOCR(originalCanvas);
 }
 
 
@@ -284,8 +272,12 @@ function processOCRResult(text, confidence) {
     const cleanedText = cleanLineBreaks(text);
     console.log('줄바꿈 정리 후:', cleanedText);
 
+    // 1.5. 불필요한 단어 제거
+    const wordCleanedText = removeUnnecessaryWords(cleanedText);
+    console.log('불필요한 단어 제거 후:', wordCleanedText);
+
     // 2. 공백 정리 테스트
-    const spaceCleaned = cleanWhitespace(cleanedText);
+    const spaceCleaned = cleanWhitespace(wordCleanedText);
     console.log('공백 정리 후:', spaceCleaned);
 
     // 3. 구조화된 파싱 테스트
@@ -315,6 +307,56 @@ function cleanLineBreaks(text) {
         .trim();
 }
 
+// 불필요한 단어 제거 함수
+function removeUnnecessaryWords(text) {
+    const unnecessaryWords = [
+        '분석기',
+        '종합',
+        '정보',
+        '공격',
+        '지원',
+        '타임',
+        '라인',
+        '관리',
+        '추가',
+        '주요',
+        '기록',
+        '님',
+        '?'
+    ];
+
+    let cleanedText = text;
+
+    // 각 불필요한 단어를 제거
+    unnecessaryWords.forEach(word => {
+        // "?" 같은 특수 문자는 이스케이프 처리
+        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // 한글 단어의 경우 공백으로 둘러싸인 경우만 제거
+        if (/[가-힣]/.test(word)) {
+            // 공백 또는 줄바꿈으로 둘러싸인 한글 단어 제거
+            const koreanRegex = new RegExp(`(\\s|^)${escapedWord}(\\s|$)`, 'g');
+            cleanedText = cleanedText.replace(koreanRegex, ' ');
+        } else {
+            // 영어나 숫자는 단어 경계 사용
+            const wordRegex = new RegExp(`\\b${escapedWord}\\b`, 'g');
+            cleanedText = cleanedText.replace(wordRegex, '');
+        }
+
+        // 줄의 시작이나 끝에 나타나는 경우
+        const lineRegex = new RegExp(`^\\s*${escapedWord}\\s*$`, 'gm');
+        cleanedText = cleanedText.replace(lineRegex, '');
+    });
+
+    // 연속된 공백을 하나로 정리
+    cleanedText = cleanedText.replace(/\s{2,}/g, ' ');
+
+    // 빈 줄 정리
+    cleanedText = cleanedText.replace(/\n\s*\n/g, '\n');
+
+    return cleanedText.trim();
+}
+
 // 2. 공백 정리 함수
 function cleanWhitespace(text) {
     return text
@@ -341,33 +383,13 @@ function filterUnnecessaryLines(lines) {
 function processTableStructure(lines) {
     const processedLines = [];
     const tableData = {};
-    
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const nextLine = lines[i + 1];
-        
-        // 테이블 헤더 패턴 감지 (여러 "님"이 포함된 줄)
-        if (line.includes('님') && line.split('님').length > 2 && nextLine) {
-            console.log('테이블 구조 감지:', line);
-            
-            // 헤더 정리 ("님" 제거 및 칼럼 추출)
-            const headers = line.split(/\s+/).filter(col => col.trim() && col !== '님');
-            const values = nextLine.split(/\s+/).filter(val => val.trim());
-            
-            // 헤더와 값 매칭
-            for (let j = 0; j < Math.min(headers.length, values.length); j++) {
-                if (headers[j] && values[j]) {
-                    tableData[headers[j]] = values[j];
-                }
-            }
-            
-            i++; // 다음 줄(데이터 행)도 건너뛰기
-            console.log('테이블 추출 완료:', tableData);
-        } else {
-            processedLines.push(line);
-        }
+
+        processedLines.push(line);
     }
-    
+
     return { processedLines, tableData };
 }
 
@@ -433,8 +455,110 @@ function correctOCRText(line) {
     return correctedLine;
 }
 
+// 전투 시간 추출 함수
+function extractCombatTime(lines) {
+    for (const line of lines) {
+        // "주요 정보 (전투 시간 13 : 16)" 패턴
+        const timeMatch = line.match(/전투\s*시간\s*(\d+)\s*:\s*(\d+)/);
+        if (timeMatch) {
+            const minutes = timeMatch[1];
+            const seconds = timeMatch[2];
+            return {
+                time: `${minutes}:${seconds.padStart(2, '0')}`,
+                raw: line
+            };
+        }
+    }
+    return { time: null, raw: null };
+}
+
+// 테이블 형태 데이터 매칭 함수
+function matchTableData(lines) {
+    const data = {};
+
+    // 라벨 행과 값 행을 찾아서 매칭
+    for (let i = 0; i < lines.length - 1; i++) {
+        const labelLine = lines[i];
+        const valueLine = lines[i + 1];
+
+        // 라벨 행 패턴: 여러 개의 한글 라벨이 포함된 행
+        if (labelLine.includes('피해량') && labelLine.includes('초당') && labelLine.includes('유효율')) {
+            console.log('테이블 라벨 행 발견:', labelLine);
+            console.log('테이블 값 행:', valueLine);
+
+            // 라벨 추출
+            const labels = extractLabelsFromLine(labelLine);
+            // 값 추출  
+            const values = extractValuesFromLine(valueLine);
+
+            console.log('추출된 라벨:', labels);
+            console.log('추출된 값:', values);
+
+            // 라벨과 값 매칭
+            const minLength = Math.min(labels.length, values.length);
+            for (let j = 0; j < minLength; j++) {
+                if (labels[j] && values[j]) {
+                    data[labels[j]] = values[j];
+                }
+            }
+
+            break; // 첫 번째 테이블만 처리
+        }
+    }
+
+    return data;
+}
+
+// 라벨 행에서 라벨들 추출
+function extractLabelsFromLine(line) {
+    const labels = [];
+
+    // 정규식으로 라벨 패턴 추출
+    const patterns = [
+        /피해량/g,
+        /초당\s*피해량/g,
+        /연가심공\s*유효율/g,
+        /치명타\s*피해\s*증가\s*유효율/g
+    ];
+
+    patterns.forEach(pattern => {
+        const matches = line.match(pattern);
+        if (matches) {
+            matches.forEach(match => {
+                const cleanLabel = match.replace(/\s+/g, ' ').trim();
+                if (!labels.includes(cleanLabel)) {
+                    labels.push(cleanLabel);
+                }
+            });
+        }
+    });
+
+    return labels;
+}
+
+// 값 행에서 값들 추출
+function extractValuesFromLine(line) {
+    const values = [];
+
+    // 숫자 패턴 추출 (억, %, 쉼표 포함)
+    const numberPattern = /[\d,]+\.?\d*[억%]?/g;
+    const matches = line.match(numberPattern);
+
+    if (matches) {
+        matches.forEach(match => {
+            // 유효한 값만 추가 (너무 작은 숫자나 의미없는 값 제외)
+            if (match !== '0' && match !== '0.' && !match.match(/^0+$/)) {
+                values.push(match);
+            }
+        });
+    }
+
+    return values;
+}
+
 // 3. 구조화된 파싱 함수 (고도화 버전 - 에러 처리 포함)
 function parseStructuredData(text) {
+    console.log('text', text)
     try {
         const lines = text.split('\n').filter(line => line.trim());
         const data = {};
@@ -454,7 +578,17 @@ function parseStructuredData(text) {
         const correctedLines = cleanedLines.map(line => correctOCRText(line));
         console.log('OCR 텍스트 보정 완료');
 
-        // 5단계: 기존 패턴 매칭
+        // 5단계: 전투 시간 추출
+        const combatTimeResult = extractCombatTime(correctedLines);
+        if (combatTimeResult.time) {
+            data['전투 시간'] = combatTimeResult.time;
+        }
+
+        // 6단계: 테이블 형태 데이터 매칭
+        const tableMatches = matchTableData(correctedLines);
+        Object.assign(data, tableMatches);
+
+        // 7단계: 기존 패턴 매칭 (백업용)
         correctedLines.forEach(line => {
             try {
                 // 한글 라벨 + 숫자/퍼센트 패턴 추출
@@ -473,7 +607,7 @@ function parseStructuredData(text) {
                         while ((match = pattern.exec(line)) !== null) {
                             const label = match[1] ? match[1].trim() : '';
                             const value = match[2] ? match[2].trim() : '';
-                            if (label && value) {
+                            if (label && value && !data[label]) { // 중복 방지
                                 data[label] = value;
                             }
                         }
@@ -481,18 +615,6 @@ function parseStructuredData(text) {
                         console.warn('패턴 매칭 중 오류:', patternError, 'Line:', line);
                     }
                 });
-
-                // 큰 숫자 (190,499,169,150 같은) 별도 처리
-                try {
-                    const bigNumbers = line.match(/\b\d{3,}(?:,\d{3})*\b/g);
-                    if (bigNumbers) {
-                        bigNumbers.forEach((num, index) => {
-                            data[`큰수값_${index + 1}`] = num;
-                        });
-                    }
-                } catch (numberError) {
-                    console.warn('숫자 매칭 중 오류:', numberError, 'Line:', line);
-                }
 
             } catch (lineError) {
                 console.warn('라인 처리 중 오류:', lineError, 'Line:', line);
@@ -685,30 +807,6 @@ function generateHTMLPreview(data, originalText = '') {
     html += `
                 </tbody>
             </table>
-            <div style="margin-top: 15px; text-align: center;">
-                <button onclick="addTableRow()" style="
-                    background: #007bff; 
-                    color: white; 
-                    border: none; 
-                    padding: 10px 20px; 
-                    margin: 5px;
-                    border-radius: 6px; 
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                ">+ 새 항목 추가</button>
-                <button onclick="saveTableData()" style="
-                    background: #28a745; 
-                    color: white; 
-                    border: none; 
-                    padding: 10px 20px; 
-                    margin: 5px;
-                    border-radius: 6px; 
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                ">💾 저장 (JSON)</button>
-            </div>
             <div style="margin-top: 15px; font-size: 0.9em; color: #6c757d; text-align: center;">
                 <span>📅 분석 시간: ${new Date().toLocaleString()}</span> | 
                 <span>📈 ${hasAutoData ? `자동 추출: ${entries.length}개` : '수동 입력 모드'}</span>
@@ -892,39 +990,320 @@ function collectTableData() {
     return data;
 }
 
-// 테이블 데이터 저장 함수 (JSON으로 콘솔 출력)
-function saveTableData() {
-    try {
-        const data = collectTableData();
-        const dataCount = Object.keys(data).length;
+// 저장 모달 표시 함수
+function showSaveModal() {
+    const data = collectTableData();
+    const dataCount = Object.keys(data).length;
 
-        if (dataCount === 0) {
-            alert('저장할 데이터가 없습니다.');
+    if (dataCount === 0) {
+        alert('저장할 데이터가 없습니다.');
+        return;
+    }
+
+    // 기존 저장 모달 제거
+    const existingModal = document.getElementById('saveRecordModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // 저장 모달 생성
+    const modal = document.createElement('div');
+    modal.id = 'saveRecordModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        ">
+            <h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">📊 기록 저장</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">캐릭터명</label>
+                <input type="text" id="saveCharacterName" placeholder="캐릭터명을 입력하세요" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 2px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    box-sizing: border-box;
+                " />
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">직업</label>
+                <select id="saveCharacterClass" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 2px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    box-sizing: border-box;
+                ">
+                    <option value="">직업 선택</option>
+                    <option value="버서커">버서커</option>
+                    <option value="디스트로이어">디스트로이어</option>
+                    <option value="워로드">워로드</option>
+                    <option value="홀리나이트">홀리나이트</option>
+                    <option value="슬레이어">슬레이어</option>
+                    <option value="아르카나">아르카나</option>
+                    <option value="서머너">서머너</option>
+                    <option value="바드">바드</option>
+                    <option value="소서리스">소서리스</option>
+                    <option value="데빌헌터">데빌헌터</option>
+                    <option value="블래스터">블래스터</option>
+                    <option value="호크아이">호크아이</option>
+                    <option value="스카우터">스카우터</option>
+                    <option value="건슬링어">건슬링어</option>
+                    <option value="인파이터">인파이터</option>
+                    <option value="스트라이커">스트라이커</option>
+                    <option value="배틀마스터">배틀마스터</option>
+                    <option value="창술사">창술사</option>
+                    <option value="데모닉">데모닉</option>
+                    <option value="리퍼">리퍼</option>
+                    <option value="소울이터">소울이터</option>
+                    <option value="도화가">도화가</option>
+                    <option value="기공사">기공사</option>
+                    <option value="브레이커">브레이커</option>
+                    <option value="웨더아티스트">웨더아티스트</option>
+                    <option value="기상술사">기상술사</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">레이드</label>
+                <input type="text" id="saveRaidName" placeholder="예: 카양겔, 상아탑, 에키드나" style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 2px solid #ddd;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    box-sizing: border-box;
+                " />
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">관문</label>
+                    <select id="saveGateNumber" style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 2px solid #ddd;
+                        border-radius: 6px;
+                        font-size: 14px;
+                    ">
+                        <option value="">관문 선택</option>
+                        <option value="1">1관문</option>
+                        <option value="2">2관문</option>
+                        <option value="3">3관문</option>
+                        <option value="4">4관문</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">난이도</label>
+                    <select id="saveDifficulty" style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 2px solid #ddd;
+                        border-radius: 6px;
+                        font-size: 14px;
+                    ">
+                        <option value="">난이도 선택</option>
+                        <option value="노말">노말</option>
+                        <option value="하드">하드</option>
+                        <option value="헬">헬</option>
+                        <option value="인페르노">인페르노</option>
+                        <option value="익스트림">익스트림</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeSaveModal()" style="
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">취소</button>
+                <button onclick="saveRecord()" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                ">💾 저장하기</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // 저장된 캐릭터 선택 정보로 필드 자동 입력
+    setTimeout(() => {
+        if (selectedCharacterInfo.characterName) {
+            document.getElementById('saveCharacterName').value = selectedCharacterInfo.characterName;
+        }
+        if (selectedCharacterInfo.characterClass) {
+            document.getElementById('saveCharacterClass').value = selectedCharacterInfo.characterClass;
+        }
+        if (selectedCharacterInfo.raidName) {
+            document.getElementById('saveRaidName').value = selectedCharacterInfo.raidName;
+        }
+        if (selectedCharacterInfo.gateNumber) {
+            // 카멘의 경우 0관문을 전체로 표시했으므로 처리
+            const gateValue = selectedCharacterInfo.gateNumber === '0' ? '' : selectedCharacterInfo.gateNumber;
+            document.getElementById('saveGateNumber').value = gateValue;
+        }
+        if (selectedCharacterInfo.difficulty) {
+            document.getElementById('saveDifficulty').value = selectedCharacterInfo.difficulty;
+        }
+
+        // 첫 번째 입력 필드에 포커스 (캐릭터명이 이미 채워져 있으면 다음 필드로)
+        const characterNameField = document.getElementById('saveCharacterName');
+        if (characterNameField.value) {
+            // 캐릭터명이 있으면 저장 버튼에 포커스
+            document.querySelector('button[onclick="saveRecord()"]').focus();
+        } else {
+            characterNameField.focus();
+        }
+    }, 100);
+}
+
+// 저장 모달 닫기
+function closeSaveModal() {
+    const modal = document.getElementById('saveRecordModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 실제 저장 실행
+async function saveRecord() {
+    try {
+        // 입력값 수집
+        const characterName = document.getElementById('saveCharacterName').value.trim();
+        const characterClass = document.getElementById('saveCharacterClass').value;
+        const raidName = document.getElementById('saveRaidName').value.trim();
+        const gateNumber = document.getElementById('saveGateNumber').value;
+        const difficulty = document.getElementById('saveDifficulty').value;
+
+        // 필수 필드 검증
+        if (!characterName) {
+            alert('캐릭터명을 입력해주세요.');
+            return;
+        }
+        if (!raidName) {
+            alert('레이드명을 입력해주세요.');
             return;
         }
 
-        // JSON 형태로 콘솔에 출력
-        const jsonData = {
-            timestamp: new Date().toISOString(),
-            dataCount: dataCount,
-            ocrResults: data
-        };
+        // OCR 데이터 수집
+        const ocrData = collectTableData();
+        
+        // 현재 이미지 파일 가져오기
+        const imageFile = getCurrentImageFile();
+        
+        console.log('=== 저장할 기록 데이터 ===');
+        console.log('캐릭터:', characterName, '직업:', characterClass);
+        console.log('레이드:', raidName, '관문:', gateNumber, '난이도:', difficulty);
+        console.log('OCR 데이터:', ocrData);
+        console.log('이미지 파일:', imageFile);
+        console.log('========================');
 
-        console.log('=== OCR 분석 결과 (JSON) ===');
-        console.log(JSON.stringify(jsonData, null, 2));
-        console.log('===========================');
+        // FormData로 전송 준비
+        const formData = new FormData();
+        formData.append('characterName', characterName);
+        formData.append('characterClass', characterClass || '');
+        formData.append('raidName', raidName);
+        formData.append('gateNumber', gateNumber || '');
+        formData.append('difficulty', difficulty || '');
+        formData.append('combatTime', ocrData['전투 시간'] || '');
+        formData.append('ocrData', JSON.stringify(ocrData));
+        
+        // 이미지 파일 추가
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
 
-        // 사용자에게 저장 완료 알림
-        alert(`✅ 저장 완료!\n\n📊 총 ${dataCount}개 항목이 JSON 형태로 콘솔에 출력되었습니다.\n\n개발자 도구(F12)의 Console 탭에서 확인하세요.`);
+        // 저장 버튼 비활성화 및 로딩 표시
+        const saveButton = document.querySelector('button[onclick="saveRecord()"]');
+        const originalButtonText = saveButton.textContent;
+        saveButton.textContent = '💾 저장 중...';
+        saveButton.disabled = true;
 
-        // 콘솔 메시지도 추가
-        console.log(`📝 저장 완료: ${dataCount}개 항목이 JSON으로 출력되었습니다.`);
+        try {
+            // API 호출
+            const response = await fetch('/api/save-record', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ 기록이 저장되었습니다!\n\n' + 
+                      `캐릭터: ${characterName} (${characterClass || '미선택'})\n` +
+                      `레이드: ${raidName} ${gateNumber ? gateNumber + '관문' : ''} ${difficulty || ''}\n` +
+                      `데이터: ${Object.keys(ocrData).length}개 항목\n` +
+                      `레코드 ID: ${result.data.recordId}`);
+
+                closeSaveModal();
+            } else {
+                throw new Error(result.error || '저장에 실패했습니다.');
+            }
+        } catch (fetchError) {
+            console.error('API 호출 오류:', fetchError);
+            alert('❌ 저장 중 오류가 발생했습니다.\n' + fetchError.message);
+        } finally {
+            // 버튼 상태 복원
+            saveButton.textContent = originalButtonText;
+            saveButton.disabled = false;
+        }
 
     } catch (error) {
-        console.error('데이터 저장 중 오류가 발생했습니다:', error);
-        alert('❌ 데이터 저장 중 오류가 발생했습니다.\n\n자세한 내용은 개발자 도구의 Console을 확인하세요.');
+        console.error('저장 중 오류:', error);
+        alert('❌ 저장 중 오류가 발생했습니다.');
     }
 }
+
+// 현재 업로드된 이미지 파일 가져오기 (전역 변수로 저장해야 함)
+let currentImageFile = null;
+
+// 캐릭터 선택 정보 저장용 전역 변수들
+let selectedCharacterInfo = {
+    characterName: '',
+    characterClass: '',
+    raidName: '',
+    gateNumber: '',
+    difficulty: ''
+};
+
+function getCurrentImageFile() {
+    return currentImageFile;
+}
+
 
 // 원본 텍스트 영역 토글 함수
 function toggleOriginalText() {
@@ -970,7 +1349,7 @@ function copyOriginalText() {
     }
 }
 
-// HTML 미리보기 표시 함수
+// HTML 미리보기 표시 함수 (우측 영역에 표시)
 function displayHTMLPreview(html) {
     // 기존 미리보기 제거
     const existingPreview = document.querySelector('.ocr-preview');
@@ -978,19 +1357,78 @@ function displayHTMLPreview(html) {
         existingPreview.remove();
     }
 
-    // 왼쪽 업로드 박스 아래에 미리보기 추가
-    const leftUploadBox = document.getElementById('leftUploadBox');
-    if (leftUploadBox) {
+    // 우측 콘텐츠 영역에 미리보기 추가
+    const rightContentArea = document.querySelector('.right-content-area');
+    if (rightContentArea) {
         const previewContainer = document.createElement('div');
         previewContainer.innerHTML = html;
-        leftUploadBox.parentNode.insertBefore(previewContainer, leftUploadBox.nextSibling);
+        rightContentArea.appendChild(previewContainer);
+        console.log('HTML 미리보기를 우측 영역에 추가했습니다.');
     } else {
-        // leftUploadBox가 없으면 body에 추가
+        // right-content-area가 없으면 body에 추가
         const previewContainer = document.createElement('div');
         previewContainer.innerHTML = html;
         document.body.appendChild(previewContainer);
-        console.log('HTML 미리보기를 body에 추가했습니다.');
+        console.log('HTML 미리보기를 body에 추가했습니다 (우측 영역을 찾을 수 없음).');
     }
+}
+
+// 왼쪽 영역에 이미지 표시 함수
+function displayImageInLeftArea(imageSrc, fileName) {
+    // 기존 이미지 표시 영역 제거
+    const existingImageContainer = document.querySelector('.left-image-preview');
+    if (existingImageContainer) {
+        existingImageContainer.remove();
+    }
+
+    // 왼쪽 업로드 박스 찾기
+    const leftUploadBox = document.getElementById('leftUploadBox');
+    if (!leftUploadBox) {
+        console.error('leftUploadBox를 찾을 수 없습니다.');
+        return;
+    }
+
+    // 이미지 미리보기 컨테이너 생성
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'left-image-preview';
+    imageContainer.style.cssText = `
+        margin-top: 10px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+        background: #f8f9fa;
+        text-align: center;
+    `;
+
+    // 이미지 요소 생성
+    const img = document.createElement('img');
+    img.src = imageSrc;
+    img.alt = fileName;
+    img.style.cssText = `
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    `;
+
+    // 파일명 표시
+    const fileNameLabel = document.createElement('div');
+    fileNameLabel.textContent = fileName;
+    fileNameLabel.style.cssText = `
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6c757d;
+        font-weight: 500;
+    `;
+
+    // 컨테이너에 이미지와 파일명 추가
+    imageContainer.appendChild(img);
+    imageContainer.appendChild(fileNameLabel);
+
+    // 왼쪽 업로드 박스 아래에 이미지 표시
+    leftUploadBox.parentNode.insertBefore(imageContainer, leftUploadBox.nextSibling);
+
+    console.log('이미지가 왼쪽 영역에 표시되었습니다:', fileName);
 }
 
 // 왼쪽 업로드 상태 표시
@@ -1030,65 +1468,8 @@ function showLeftUploadStatus(message, type = 'info') {
 }
 
 
-// 오른쪽 이미지 업로드 처리 (스킬용)
-function handleRightImageUpload(file) {
-    alert("개발중입니다.");
-    if (!file || !file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드할 수 있습니다.');
-        return;
-    }
 
-    console.log('오른쪽 스킬 이미지 업로드:', file.name);
 
-    // 로딩 표시
-    showRightUploadStatus('🔍 스킬 이미지 분석 중...', 'loading');
-
-    // OCR 분석 시작
-    analyzeSkillImage(file);
-}
-
-// 오른쪽 업로드 상태 표시
-function showRightUploadStatus(message, type = 'info') {
-    const rightUploadBox = document.getElementById('rightUploadBox');
-    const originalContent = rightUploadBox.innerHTML;
-
-    let color = '#3498db';
-    let icon = '📁';
-
-    switch (type) {
-        case 'loading':
-            color = '#f39c12';
-            icon = '🔍';
-            break;
-        case 'success':
-            color = '#27ae60';
-            icon = '✅';
-            break;
-        case 'error':
-            color = '#e74c3c';
-            icon = '❌';
-            break;
-    }
-
-    rightUploadBox.innerHTML = `
-        <div class="upload-icon-small">${icon}</div>
-        <span class="upload-text-small" style="color: ${color}">${message}</span>
-    `;
-
-    // 3초 후 원래 상태로 복원 (로딩이 아닌 경우)
-    if (type !== 'loading') {
-        setTimeout(() => {
-            rightUploadBox.innerHTML = originalContent;
-        }, 3000);
-    }
-}
-
-// 기존 displayRightImage 함수 (호환성 유지용 - 사용되지 않음)
-function displayRightImage(imageSrc, fileName) {
-    // 이 함수는 더 이상 사용되지 않습니다.
-    // 오른쪽 이미지 업로드는 자동으로 OCR 분석을 실행합니다.
-    console.log('displayRightImage 호출됨 (사용되지 않음):', fileName);
-}
 
 // 기존 모달 이미지 업로드 처리 (호환성 유지)
 function handleModalImageUpload(file) {
