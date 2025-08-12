@@ -18,7 +18,19 @@ function showPage(pageId) {
     });
 
     // 클릭된 메뉴 항목에 active 클래스 추가
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+
+    // 페이지별 초기화 로직
+    if (pageId === 'records') {
+        // 기록 페이지 초기화
+        if (typeof onRecordsPageShow === 'function') {
+            onRecordsPageShow();
+        }
+    }
+
+    console.log(`페이지 전환: ${pageId}`);
 }
 
 // features 페이지 API 로딩 표시

@@ -88,6 +88,9 @@ const upload = multer({
 // 정적 파일 서빙 (HTML, CSS, JS 파일들)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 업로드된 이미지 파일 서빙
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // JSON 요청 바디 파싱
 app.use(express.json());
 
@@ -632,6 +635,226 @@ app.delete('/api/cache/clear', async (req, res) => {
         res.status(500).json({
             success: false,
             error: '캐시 초기화 실패',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * OCR 기록 목록 조회 API
+ * 
+ * GET /api/records
+ * - 저장된 OCR 기록 목록을 최신순으로 조회
+ * - 쿼리 파라미터: page, limit, character, raid
+ */
+app.get('/api/records', async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            character = '',
+            raid = '',
+            sortBy = 'created_at',
+            sortOrder = 'DESC'
+        } = req.query;
+
+        console.log('📋 OCR 기록 목록 조회 요청:', { page, limit, character, raid, sortBy, sortOrder });
+
+        // 기본 쿼리 - 단순화해서 JOIN 문제 해결
+        let baseQuery = `
+            SELECT 
+                r.no,
+                r.id,
+                r.character_name,
+                r.character_class,
+                r.raid_name,
+                r.gate_number,
+                r.difficulty,
+                r.combat_time,
+                r.image_url,
+                r.created_at,
+                (SELECT COUNT(*) FROM ocr_stats s WHERE s.record_id = r.id) as stats_count
+            FROM ocr_records r
+        `;
+
+        // WHERE 조건 추가
+        const conditions = [];
+        const params = [];
+
+        if (character) {
+            conditions.push('r.character_name LIKE ?');
+            params.push(`%${character}%`);
+        }
+
+        if (raid) {
+            conditions.push('r.raid_name LIKE ?');
+            params.push(`%${raid}%`);
+        }
+
+        if (conditions.length > 0) {
+            baseQuery += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        // 정렬 추가
+        const allowedSortColumns = ['created_at', 'character_name', 'raid_name', 'combat_time'];
+        const finalSortBy = allowedSortColumns.includes(sortBy) ? `r.${sortBy}` : 'r.created_at';
+        const finalSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        baseQuery += ` ORDER BY ${finalSortBy} ${finalSortOrder}`;
+
+        // LIMIT와 OFFSET 추가
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        baseQuery += ` LIMIT ? OFFSET ?`;
+        params.push(parseInt(limit), offset);
+
+        console.log('실행할 쿼리:', baseQuery);
+        console.log('파라미터:', params);
+
+        // 데이터 조회
+        const records = await executeQuery(baseQuery, params);
+
+        console.log('조회된 records:', records);
+        console.log('records 타입:', typeof records);
+        console.log('배열인가?', Array.isArray(records));
+        console.log('records 길이:', records ? records.length : 'undefined');
+
+        // 전체 개수 조회 (페이징용)
+        let countQuery = `
+            SELECT COUNT(*) as total
+            FROM ocr_records r
+        `;
+
+        const countConditions = [];
+        const countParams = [];
+
+        if (character) {
+            countConditions.push('r.character_name LIKE ?');
+            countParams.push(`%${character}%`);
+        }
+
+        if (raid) {
+            countConditions.push('r.raid_name LIKE ?');
+            countParams.push(`%${raid}%`);
+        }
+
+        if (countConditions.length > 0) {
+            countQuery += ' WHERE ' + countConditions.join(' AND ');
+        }
+
+        const countResult = await executeQuery(countQuery, countParams);
+        const totalRecords = countResult[0]?.total || 0;
+
+        console.log(`✅ OCR 기록 조회 완료: ${records ? records.length : 0}개 조회, 전체 ${totalRecords}개`);
+
+        // records가 배열이 아닌 경우 빈 배열로 설정
+        const safeRecords = Array.isArray(records) ? records : [];
+
+        res.json({
+            success: true,
+            data: {
+                records: safeRecords,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: Math.ceil(totalRecords / parseInt(limit)),
+                    totalRecords: totalRecords,
+                    limit: parseInt(limit)
+                }
+            },
+            message: `OCR 기록 ${safeRecords.length}개를 조회했습니다.`
+        });
+
+    } catch (error) {
+        console.error('OCR 기록 조회 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: 'OCR 기록 조회 중 오류가 발생했습니다.',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * OCR 기록 상세 조회 API
+ * 
+ * GET /api/records/:id
+ * - 특정 OCR 기록의 상세 정보와 모든 스탯 데이터 조회
+ */
+app.get('/api/records/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log(`📋 OCR 기록 상세 조회: ${id}`);
+
+        // 메인 레코드 조회
+        const recordQuery = `
+            SELECT 
+                no,
+                id,
+                character_name,
+                character_class,
+                raid_name,
+                gate_number,
+                difficulty,
+                combat_time,
+                image_url,
+                raw_ocr_data,
+                created_at
+            FROM ocr_records 
+            WHERE id = ?
+        `;
+
+        const recordResult = await executeQuery(recordQuery, [id]);
+
+        if (recordResult.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: '해당 기록을 찾을 수 없습니다.'
+            });
+        }
+
+        const record = recordResult[0];
+
+        // 스탯 데이터 조회
+        const statsQuery = `
+            SELECT 
+                id,
+                stat_name,
+                stat_value,
+                stat_category,
+                created_at
+            FROM ocr_stats 
+            WHERE record_id = ?
+            ORDER BY stat_category, stat_name
+        `;
+
+        const statsResult = await executeQuery(statsQuery, [id]);
+
+        // raw_ocr_data JSON 파싱
+        let parsedOcrData = {};
+        try {
+            if (record.raw_ocr_data) {
+                parsedOcrData = JSON.parse(record.raw_ocr_data);
+            }
+        } catch (parseError) {
+            console.warn('OCR 데이터 파싱 실패:', parseError);
+        }
+
+        console.log(`✅ OCR 기록 상세 조회 완료: ${statsResult.length}개 스탯`);
+
+        res.json({
+            success: true,
+            data: {
+                record: record,
+                stats: statsResult,
+                parsedOcrData: parsedOcrData
+            },
+            message: '기록 상세 정보를 조회했습니다.'
+        });
+
+    } catch (error) {
+        console.error('OCR 기록 상세 조회 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: '기록 상세 조회 중 오류가 발생했습니다.',
             details: error.message
         });
     }

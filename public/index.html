@@ -23,6 +23,7 @@
             <ul>
                 <li><a href="#" onclick="showPage('home')" class="active">홈</a></li>
                 <li><a href="#" onclick="showPage('features')">정보 입력</a></li>
+                <li><a href="#" onclick="showPage('records')">기록 보기</a></li>
                 <li><a href="#" onclick="showPage('contact')">연락처</a></li>
             </ul>
         </div>
@@ -75,6 +76,175 @@
                 </div>
             </div>
 
+
+            <!-- 기록 보기 페이지 -->
+            <div class="page" id="records">
+                <div class="content-section">
+                    <h2>📊 기록 보기</h2>
+                    <p>저장된 OCR 분석 기록을 확인하고 관리합니다.</p>
+
+                    <!-- 검색 및 필터 영역 -->
+                    <div class="records-filters" style="
+                        background: #f8f9fa; 
+                        border: 1px solid #dee2e6; 
+                        border-radius: 8px; 
+                        padding: 20px; 
+                        margin-bottom: 20px;
+                    ">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">캐릭터명 검색</label>
+                                <input type="text" id="recordsCharacterFilter" placeholder="캐릭터명으로 검색..." style="
+                                    width: 100%;
+                                    padding: 8px 12px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 4px;
+                                    font-size: 14px;
+                                    box-sizing: border-box;
+                                " />
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">레이드명 검색</label>
+                                <input type="text" id="recordsRaidFilter" placeholder="레이드명으로 검색..." style="
+                                    width: 100%;
+                                    padding: 8px 12px;
+                                    border: 1px solid #ddd;
+                                    border-radius: 4px;
+                                    font-size: 14px;
+                                    box-sizing: border-box;
+                                " />
+                            </div>
+                            <div style="min-width: 120px;">
+                                <button id="recordsSearchBtn" style="
+                                    background: #007bff;
+                                    color: white;
+                                    border: none;
+                                    padding: 8px 16px;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                ">🔍 검색</button>
+                                <button id="recordsResetBtn" style="
+                                    background: #6c757d;
+                                    color: white;
+                                    border: none;
+                                    padding: 8px 16px;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    margin-left: 5px;
+                                ">🔄 초기화</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 기록 목록 테이블 -->
+                    <div class="records-table-container" style="
+                        background: white;
+                        border: 1px solid #dee2e6;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    ">
+                        <div id="recordsLoading" class="hidden" style="
+                            padding: 40px;
+                            text-align: center;
+                            color: #666;
+                        ">
+                            <div style="font-size: 18px; margin-bottom: 10px;">🔍</div>
+                            <div>기록을 불러오는 중...</div>
+                        </div>
+
+                        <div id="recordsError" class="hidden" style="
+                            padding: 40px;
+                            text-align: center;
+                            color: #dc3545;
+                        ">
+                            <div style="font-size: 18px; margin-bottom: 10px;">❌</div>
+                            <div id="recordsErrorMessage">기록을 불러오는 중 오류가 발생했습니다.</div>
+                        </div>
+
+                        <div id="recordsEmpty" class="hidden" style="
+                            padding: 40px;
+                            text-align: center;
+                            color: #666;
+                        ">
+                            <div style="font-size: 18px; margin-bottom: 10px;">📭</div>
+                            <div>저장된 기록이 없습니다.</div>
+                            <small style="color: #999;">정보 입력 페이지에서 OCR 분석 후 기록을 저장해보세요.</small>
+                        </div>
+
+                        <table id="recordsTable" class="hidden" style="
+                            width: 100%;
+                            border-collapse: collapse;
+                        ">
+                            <thead>
+                                <tr style="background: #495057; color: white;">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">캐릭터</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">직업</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6;">레이드</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">관문</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">난이도</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">전투시간</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">스탯수</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">날짜</th>
+                                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #dee2e6;">작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody">
+                                <!-- 데이터는 JavaScript로 동적 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 페이지네이션 -->
+                    <div id="recordsPagination" class="hidden" style="
+                        margin-top: 20px;
+                        text-align: center;
+                    ">
+                        <div style="display: inline-flex; gap: 5px; align-items: center;">
+                            <button id="recordsFirstPageBtn" style="
+                                background: #f8f9fa;
+                                border: 1px solid #dee2e6;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                            ">첫 페이지</button>
+                            <button id="recordsPrevPageBtn" style="
+                                background: #f8f9fa;
+                                border: 1px solid #dee2e6;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                            ">이전</button>
+                            <span id="recordsPageInfo" style="
+                                margin: 0 15px;
+                                font-weight: 600;
+                                color: #495057;
+                            ">1 / 1</span>
+                            <button id="recordsNextPageBtn" style="
+                                background: #f8f9fa;
+                                border: 1px solid #dee2e6;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                            ">다음</button>
+                            <button id="recordsLastPageBtn" style="
+                                background: #f8f9fa;
+                                border: 1px solid #dee2e6;
+                                padding: 8px 12px;
+                                border-radius: 4px;
+                                cursor: pointer;
+                            ">마지막 페이지</button>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #6c757d;">
+                            <span id="recordsTotalInfo">총 0개 기록</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- 연락처 페이지 -->
             <div class="page" id="contact">
@@ -143,6 +313,7 @@
         <script src="js/character.js"></script>
         <script src="js/ui.js"></script>
         <script src="js/modal.js"></script>
+        <script src="js/records.js"></script>
         <script src="js/main.js"></script>
 </body>
 
