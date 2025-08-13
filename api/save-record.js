@@ -65,11 +65,9 @@ async function uploadToCloudinary(filePath, options = {}) {
         const defaultOptions = {
             folder: 'lostark-ocr',
             resource_type: 'image',
-            quality: 'auto',
-            format: 'auto',
+            quality: 'auto:good',
             transformation: [
-                { width: 1920, height: 1080, crop: 'limit' },
-                { quality: 'auto:good' }
+                { width: 1920, height: 1080, crop: 'limit' }
             ]
         };
 
