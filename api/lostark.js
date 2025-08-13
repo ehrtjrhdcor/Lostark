@@ -4,10 +4,177 @@
  * 로스트아크 공식 API를 통해 캐릭터 정보를 조회하는 API입니다.
  */
 
+const mysql = require('mysql2/promise');
+
 const LOSTARK_API_BASE_URL = 'https://developer-lostark.game.onstove.com';
 
 // API 키 풀 관리
 const API_KEYS = process.env.LOSTARK_API_KEYS ? process.env.LOSTARK_API_KEYS.split(',') : [];
+
+// PlanetScale 데이터베이스 연결
+function createConnection() {
+    if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL 환경변수가 설정되지 않았습니다.');
+    }
+
+    return mysql.createConnection({
+        uri: process.env.DATABASE_URL,
+        ssl: {
+            rejectUnauthorized: false
+        }
+    });
+}
+
+// 캐시 헬퍼 함수들
+async function getCachedSiblings(characterName) {
+    let connection;
+    try {
+        connection = await createConnection();
+        const [rows] = await connection.execute(
+            'SELECT * FROM character_siblings WHERE search_keyword = ? AND cached_at > DATE_SUB(NOW(), INTERVAL 8760 HOUR)',
+            [characterName]
+        );
+        console.log(`📋 캐시된 형제 캐릭터 ${rows.length}명 조회: ${characterName}`);
+        return rows;
+    } catch (error) {
+        console.error('캐시 조회 오류:', error);
+        return [];
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+async function cacheSiblings(characterName, siblings) {
+    let connection;
+    try {
+        connection = await createConnection();
+        
+        // 기존 캐시 삭제
+        await connection.execute('DELETE FROM character_siblings WHERE search_keyword = ?', [characterName]);
+        
+        // 새 데이터 삽입
+        for (const sibling of siblings) {
+            await connection.execute(
+                `INSERT INTO character_siblings 
+                 (character_name, server_name, character_level, character_class, item_avg_level, search_keyword)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [
+                    sibling.CharacterName,
+                    sibling.ServerName,
+                    sibling.CharacterLevel,
+                    sibling.CharacterClassName,
+                    sibling.ItemAvgLevel,
+                    characterName
+                ]
+            );
+        }
+        console.log(`💾 형제 캐릭터 ${siblings.length}명 캐시 저장: ${characterName}`);
+    } catch (error) {
+        console.error('캐시 저장 오류:', error);
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+async function getCachedProfile(characterName) {
+    let connection;
+    try {
+        connection = await createConnection();
+        const [rows] = await connection.execute(
+            'SELECT * FROM character_profiles WHERE character_name = ? AND cached_at > DATE_SUB(NOW(), INTERVAL 8760 HOUR)',
+            [characterName]
+        );
+        if (rows.length > 0) {
+            console.log(`📋 캐시된 프로필 조회: ${characterName}`);
+            return rows[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('프로필 캐시 조회 오류:', error);
+        return null;
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+async function cacheProfile(characterName, profile) {
+    let connection;
+    try {
+        connection = await createConnection();
+        await connection.execute(
+            `INSERT INTO character_profiles 
+             (character_name, character_image, expedition_level, pvp_grade, town_level, town_name,
+              title, guild_name, guild_member_grade, using_skill_point, total_skill_point,
+              combat_power, server_name, character_level, character_class, item_avg_level)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+             character_image = VALUES(character_image),
+             expedition_level = VALUES(expedition_level),
+             pvp_grade = VALUES(pvp_grade),
+             town_level = VALUES(town_level),
+             town_name = VALUES(town_name),
+             title = VALUES(title),
+             guild_name = VALUES(guild_name),
+             guild_member_grade = VALUES(guild_member_grade),
+             using_skill_point = VALUES(using_skill_point),
+             total_skill_point = VALUES(total_skill_point),
+             combat_power = VALUES(combat_power),
+             server_name = VALUES(server_name),
+             character_level = VALUES(character_level),
+             character_class = VALUES(character_class),
+             item_avg_level = VALUES(item_avg_level),
+             updated_at = CURRENT_TIMESTAMP`,
+            [
+                characterName,
+                profile.CharacterImage || null,
+                profile.ExpeditionLevel || null,
+                profile.PvpGradeName || null,
+                profile.TownLevel || null,
+                profile.TownName || null,
+                profile.Title || null,
+                profile.GuildName || null,
+                profile.GuildMemberGrade || null,
+                profile.UsingSkillPoint || null,
+                profile.TotalSkillPoint || null,
+                profile.CombatPower || null,
+                profile.ServerName || null,
+                profile.CharacterLevel || null,
+                profile.CharacterClassName || null,
+                profile.ItemAvgLevel || null
+            ]
+        );
+        console.log(`💾 캐릭터 프로필 캐시 저장: ${characterName}`);
+    } catch (error) {
+        console.error('프로필 캐시 저장 오류:', error);
+    } finally {
+        if (connection) await connection.end();
+    }
+}
+
+async function deleteCachedData(characterName) {
+    let connection;
+    try {
+        connection = await createConnection();
+        
+        // 형제 캐릭터 캐시 삭제
+        await connection.execute('DELETE FROM character_siblings WHERE search_keyword = ?', [characterName]);
+        
+        // 해당 캐릭터들의 프로필 캐시도 삭제 (형제 캐릭터들 포함)
+        const [siblings] = await connection.execute('SELECT character_name FROM character_siblings WHERE search_keyword = ?', [characterName]);
+        for (const sibling of siblings) {
+            await connection.execute('DELETE FROM character_profiles WHERE character_name = ?', [sibling.character_name]);
+        }
+        
+        // 검색한 캐릭터의 프로필도 삭제
+        await connection.execute('DELETE FROM character_profiles WHERE character_name = ?', [characterName]);
+        
+        console.log(`🗑️ ${characterName} 관련 캐시 데이터 삭제 완료`);
+    } catch (error) {
+        console.error('캐시 삭제 오류:', error);
+    } finally {
+        if (connection) await connection.end();
+    }
+}
 
 // 랜덤 API 키 선택 함수
 function getRandomApiKey() {
@@ -231,9 +398,62 @@ async function handleCharacterSiblings(req, res, characterName) {
 	}
 
 	try {
+		// 먼저 캐시에서 조회
+		const cachedSiblings = await getCachedSiblings(characterName);
+		if (cachedSiblings.length > 0) {
+			console.log(`🚀 캐시에서 ${characterName} 형제 캐릭터 반환: ${cachedSiblings.length}명`);
+			
+			// 프로필 데이터도 캐시에서 조회
+			let profileResults = [];
+			for (const sibling of cachedSiblings) {
+				const cachedProfile = await getCachedProfile(sibling.character_name);
+				if (cachedProfile) {
+					profileResults.push({
+						character: sibling.character_name,
+						success: true,
+						data: {
+							CharacterImage: cachedProfile.character_image,
+							ExpeditionLevel: cachedProfile.expedition_level,
+							PvpGradeName: cachedProfile.pvp_grade,
+							TownLevel: cachedProfile.town_level,
+							TownName: cachedProfile.town_name,
+							Title: cachedProfile.title,
+							GuildName: cachedProfile.guild_name,
+							GuildMemberGrade: cachedProfile.guild_member_grade,
+							UsingSkillPoint: cachedProfile.using_skill_point,
+							TotalSkillPoint: cachedProfile.total_skill_point,
+							CombatPower: cachedProfile.combat_power,
+							ServerName: cachedProfile.server_name,
+							CharacterLevel: cachedProfile.character_level,
+							CharacterClassName: cachedProfile.character_class,
+							ItemAvgLevel: cachedProfile.item_avg_level
+						}
+					});
+				}
+			}
+
+			// 캐시된 형제 데이터를 API 형태로 변환
+			const siblingsData = cachedSiblings.map(sibling => ({
+				CharacterName: sibling.character_name,
+				ServerName: sibling.server_name,
+				CharacterLevel: sibling.character_level,
+				CharacterClassName: sibling.character_class,
+				ItemAvgLevel: sibling.item_avg_level
+			}));
+
+			return res.json({
+				success: true,
+				data: {
+					siblings: siblingsData,
+					profiles: profileResults,
+					fromCache: true
+				}
+			});
+		}
+
+		// 캐시에 없으면 API 호출
+		console.log(`📋 API에서 ${characterName} 형제 캐릭터 조회 중...`);
 		const siblingsUrl = `${LOSTARK_API_BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
-		
-		console.log(`📋 ${characterName} 형제 캐릭터 조회 중...`);
 		console.log(`URL: ${siblingsUrl}`);
 
 		const apiKey = getRandomApiKey();
@@ -296,6 +516,9 @@ async function handleCharacterSiblings(req, res, characterName) {
 							success: true,
 							data: profileData
 						});
+						
+						// 프로필 캐시 저장
+						await cacheProfile(character.CharacterName, profileData);
 					} else {
 						console.error(`❌ ${character.CharacterName} 프로필 실패:`, profileResponse.status);
 						profileResults.push({
@@ -319,10 +542,18 @@ async function handleCharacterSiblings(req, res, characterName) {
 			}
 		}
 
+		// 형제 캐릭터 데이터를 캐시에 저장
+		if (Array.isArray(siblingsData) && siblingsData.length > 0) {
+			await cacheSiblings(characterName, siblingsData);
+		}
+
 		return res.json({
 			success: true,
-			result: siblingsData,
-			profiles: profileResults,
+			data: {
+				siblings: siblingsData,
+				profiles: profileResults,
+				fromCache: false
+			},
 			message: `${characterName} 캐릭터 조회 완료`
 		});
 
@@ -350,7 +581,10 @@ async function handleCharacterRefresh(req, res, characterName) {
 	try {
 		console.log(`🔄 ${characterName} 강제 데이터 갱신 시작...`);
 		
-		// Vercel에서는 캐시를 사용하지 않으므로 바로 API 호출
+		// 기존 캐시 삭제
+		await deleteCachedData(characterName);
+		
+		// API 호출로 새 데이터 가져오기
 		const siblingsUrl = `${LOSTARK_API_BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
 		
 		console.log(`🔍 ${characterName} 형제 캐릭터 강제 조회 중...`);
@@ -416,6 +650,9 @@ async function handleCharacterRefresh(req, res, characterName) {
 							success: true,
 							data: profileData
 						});
+						
+						// 새 프로필 데이터를 캐시에 저장
+						await cacheProfile(character.CharacterName, profileData);
 					} else {
 						console.error(`❌ ${character.CharacterName} 프로필 강제 갱신 실패:`, profileResponse.status);
 						profileResults.push({
@@ -439,10 +676,18 @@ async function handleCharacterRefresh(req, res, characterName) {
 			}
 		}
 
+		// 새로 갱신된 형제 캐릭터 데이터를 캐시에 저장
+		if (Array.isArray(siblingsData) && siblingsData.length > 0) {
+			await cacheSiblings(characterName, siblingsData);
+		}
+
 		return res.json({
 			success: true,
-			result: siblingsData,
-			profiles: profileResults,
+			data: {
+				siblings: siblingsData,
+				profiles: profileResults,
+				fromCache: false
+			},
 			message: `${characterName} 데이터 강제 갱신 완료`,
 			refreshed: {
 				siblings: siblingsData.length,
