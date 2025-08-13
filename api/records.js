@@ -53,7 +53,32 @@ export default async function handler(req, res) {
     let connection;
 
     try {
+        // 환경변수 체크
+        if (!process.env.DATABASE_URL) {
+            console.error('❌ DATABASE_URL 환경변수가 설정되지 않았습니다.');
+            return res.status(500).json({
+                success: false,
+                error: 'Database configuration error',
+                details: 'DATABASE_URL 환경변수가 설정되지 않았습니다.'
+            });
+        }
+
+        console.log('🔗 데이터베이스 연결 시도 중...');
         connection = await createConnection();
+        console.log('✅ 데이터베이스 연결 성공');
+
+        // 테이블 존재 확인
+        try {
+            await executeQuery(connection, 'SELECT 1 FROM ocr_records LIMIT 1');
+            console.log('✅ ocr_records 테이블 확인 완료');
+        } catch (tableError) {
+            console.error('❌ ocr_records 테이블이 존재하지 않습니다:', tableError.message);
+            return res.status(500).json({
+                success: false,
+                error: 'Database table not found',
+                details: 'ocr_records 테이블이 존재하지 않습니다. PlanetScale에서 테이블을 먼저 생성해주세요.'
+            });
+        }
 
         const { method, query } = req;
         const { id } = query;
