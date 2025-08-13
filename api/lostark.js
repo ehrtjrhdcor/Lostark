@@ -266,10 +266,62 @@ async function handleCharacterSiblings(req, res, characterName) {
 
 		console.log(`✅ ${characterName} 형제 캐릭터 목록:`, siblingsData);
 
+		// 각 캐릭터의 프로필도 함께 조회
+		let profileResults = [];
+		if (Array.isArray(siblingsData) && siblingsData.length > 0) {
+			console.log(`=== ${siblingsData.length}명의 캐릭터 프로필 조회 시작 ===`);
+
+			for (const character of siblingsData) {
+				try {
+					const profileUrl = `${LOSTARK_API_BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
+					console.log(`📋 ${character.CharacterName} 프로필 조회 중...`);
+
+					const profileApiKey = getRandomApiKey();
+					const profileResponse = await fetch(profileUrl, {
+						method: 'GET',
+						headers: {
+							'Authorization': `Bearer ${profileApiKey}`,
+							'Accept': 'application/json'
+						}
+					});
+
+					const profileData = await profileResponse.json();
+
+					if (profileResponse.ok) {
+						console.log(`✅ ${character.CharacterName} 프로필 성공`);
+						profileResults.push({
+							character: character.CharacterName,
+							success: true,
+							data: profileData
+						});
+					} else {
+						console.error(`❌ ${character.CharacterName} 프로필 실패:`, profileResponse.status);
+						profileResults.push({
+							character: character.CharacterName,
+							success: false,
+							error: profileData
+						});
+					}
+
+					// API 제한 방지를 위한 딜레이
+					await new Promise(resolve => setTimeout(resolve, 1000));
+
+				} catch (profileError) {
+					console.error(`❌ ${character.CharacterName} 프로필 오류:`, profileError.message);
+					profileResults.push({
+						character: character.CharacterName,
+						success: false,
+						error: profileError.message
+					});
+				}
+			}
+		}
+
 		return res.json({
 			success: true,
 			result: siblingsData,
-			message: '형제 캐릭터 조회 성공'
+			profiles: profileResults,
+			message: `${characterName} 캐릭터 조회 완료`
 		});
 
 	} catch (error) {
