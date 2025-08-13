@@ -17,6 +17,7 @@ function initializeEventListeners() {
     const apiKeyInput = document.getElementById('apiKeyInput');
     const featuresCharacterSearchInput = document.getElementById('featuresCharacterSearchInput');
     const featuresCharacterSearchBtn = document.getElementById('featuresCharacterSearchBtn');
+    const featuresCharacterRefreshBtn = document.getElementById('featuresCharacterRefreshBtn');
 
     // features 페이지 캐릭터 검색 버튼
     if (featuresCharacterSearchBtn && featuresCharacterSearchInput) {
@@ -56,6 +57,23 @@ function initializeEventListeners() {
         apiKeyInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 featuresCharacterSearchInput.focus();
+            }
+        });
+    }
+
+    // features 페이지 캐릭터 강제 갱신 버튼
+    if (featuresCharacterRefreshBtn && featuresCharacterSearchInput) {
+        featuresCharacterRefreshBtn.addEventListener('click', function () {
+            const characterName = featuresCharacterSearchInput.value.trim();
+
+            if (!characterName) {
+                alert('캐릭터명을 입력해주세요.');
+                return;
+            }
+
+            // 강제 갱신 확인
+            if (confirm(`${characterName}의 데이터를 강제로 갱신하시겠습니까?\n(기존 캐시를 삭제하고 API에서 최신 데이터를 조회합니다)`)) {
+                refreshCharacterData(characterName);
             }
         });
     }

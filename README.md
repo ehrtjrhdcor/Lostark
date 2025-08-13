@@ -59,7 +59,7 @@ CREATE TABLE ocr_stats (
     INDEX idx_record_id (record_id),
     INDEX idx_stat_name (stat_name),
     INDEX idx_stat_category (stat_category),
-    FOREIGN KEY (record_id) REFERENCES ocr_records(id) ON DELETE CASCADE
+    
 );
 ```
 
@@ -74,10 +74,10 @@ CREATE TABLE ocr_stats (
 `.env` 파일을 생성하고 다음 내용을 추가:
 
 ```env
-# PlanetScale Database
-DATABASE_URL=mysql://username:password@host:port/database_name
+# Database Configuration
+DATABASE_URL='mysql://username:password@host/database?ssl={"rejectUnauthorized":true}'
 
-# Cloudinary Configuration
+# Cloudinary Configuration  
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret

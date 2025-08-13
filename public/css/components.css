@@ -1,7 +1,7 @@
 /* 컴포넌트 스타일 */
 
 /* 버튼 스타일 */
-.search-button, .select-button {
+.search-button, .select-button, .refresh-button {
     padding: 12px 24px;
     background-color: #3498db;
     color: white;
@@ -10,6 +10,15 @@
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s;
+}
+
+.refresh-button {
+    background-color: #28a745;
+    margin-left: 10px;
+}
+
+.refresh-button:hover {
+    background-color: #218838;
 }
 
 .search-button:hover, .select-button:hover {

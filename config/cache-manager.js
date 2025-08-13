@@ -125,8 +125,8 @@ class CacheManager {
      */
     async insertDefaultSettings() {
         const settings = [
-            ['character_cache_duration_hours', '24', '캐릭터 기본 정보 캐시 유지 시간 (시간)'],
-            ['profile_cache_duration_hours', '24', '캐릭터 상세 프로필 캐시 유지 시간 (시간)'],
+            ['character_cache_duration_hours', '8760', '캐릭터 기본 정보 캐시 유지 시간 (시간) - 1년'],
+            ['profile_cache_duration_hours', '8760', '캐릭터 상세 프로필 캐시 유지 시간 (시간) - 1년'],
             ['api_rate_limit_per_minute', '90', '분당 API 호출 제한 (5개 키 × 18회)'],
             ['batch_processing_delay_ms', '1000', '배치 처리 간 딜레이 (밀리초)']
         ];

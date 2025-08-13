@@ -128,4 +128,70 @@ function testLostArkAPI(apiKey, characterName) {
         });
 }
 
+/**
+ * 캐릭터 데이터 강제 갱신 함수
+ * @param {string} characterName - 갱신할 캐릭터명
+ */
+function refreshCharacterData(characterName) {
+    showApiLoading('캐시를 무시하고 최신 데이터를 조회 중입니다...');
+
+    fetch('/api/lostark/character/refresh', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ characterName: characterName })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // 강제 갱신 성공 후 캐릭터 목록 표시
+            if (data.result && data.result.length > 0) {
+                displayCharacterImages(data.profiles || []);
+                
+                // 성공 메시지 표시
+                const apiResult = document.getElementById('apiResult');
+                const successMessage = document.createElement('div');
+                successMessage.className = 'success-message';
+                successMessage.style.cssText = 'background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;';
+                successMessage.innerHTML = `
+                    <strong>✅ 데이터 갱신 완료!</strong><br>
+                    형제 캐릭터: ${data.refreshed.siblings}명<br>
+                    프로필 갱신: ${data.refreshed.profiles}명<br>
+                    소요시간: ${data.refreshed.totalTime}ms
+                `;
+                
+                // 로딩 제거 후 성공 메시지 추가
+                const loadingDiv = apiResult.querySelector('.loading');
+                if (loadingDiv) {
+                    loadingDiv.replaceWith(successMessage);
+                } else {
+                    apiResult.insertBefore(successMessage, apiResult.firstChild);
+                }
+                
+                // 3초 후 성공 메시지 제거
+                setTimeout(() => {
+                    if (successMessage.parentNode) {
+                        successMessage.remove();
+                    }
+                }, 3000);
+                
+            } else {
+                showApiError('형제 캐릭터를 찾을 수 없습니다.');
+            }
+        } else {
+            showApiError(data.error || '데이터 갱신에 실패했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('데이터 갱신 오류:', error);
+        showApiError('서버와 연결할 수 없습니다.');
+    });
+}
+
 

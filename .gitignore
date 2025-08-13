@@ -1,3 +1,4 @@
 # Ignore model files
 game_model.pkl
 game_model_v2.pkl
+.env
