@@ -1059,7 +1059,16 @@ async function saveRecordDirect(characterName, characterClass, raidName, gateNum
             body: formData
         });
 
+        console.log('응답 상태:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('HTTP 에러 응답:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}\n\n${errorText}`);
+        }
+
         const result = await response.json();
+        console.log('API 응답:', result);
 
         if (result.success) {
             alert('✅ 기록이 저장되었습니다!\n\n' + 
@@ -1068,11 +1077,22 @@ async function saveRecordDirect(characterName, characterClass, raidName, gateNum
                   `데이터: ${Object.keys(ocrData).length}개 항목\n` +
                   `레코드 ID: ${result.data.recordId}`);
         } else {
+            console.error('API 응답 에러:', result);
             throw new Error(result.error || '저장에 실패했습니다.');
         }
     } catch (error) {
         console.error('저장 중 오류:', error);
-        alert('❌ 저장 중 오류가 발생했습니다.\n' + error.message);
+        
+        // 더 자세한 에러 정보 표시
+        let errorMessage = '❌ 저장 중 오류가 발생했습니다.\n\n';
+        errorMessage += `오류: ${error.message}\n`;
+        
+        // fetch 오류인 경우 추가 정보
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage += '\n네트워크 연결을 확인해주세요.';
+        }
+        
+        alert(errorMessage);
     }
 }
 

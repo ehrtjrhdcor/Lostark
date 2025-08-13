@@ -367,10 +367,12 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('OCR 기록 저장 실패:', error);
+        console.error('에러 스택:', error.stack);
         return res.status(500).json({
             success: false,
             error: 'OCR 기록 저장 중 오류가 발생했습니다.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            details: error.message, // 개발/프로덕션 구분 없이 에러 메시지 노출
+            stack: error.stack
         });
     } finally {
         if (connection) {
