@@ -135,12 +135,13 @@ function testLostArkAPI(apiKey, characterName) {
 function refreshCharacterData(characterName) {
     showApiLoading('캐시를 무시하고 최신 데이터를 조회 중입니다...');
 
-    fetch('/api/lostark/character/refresh', {
+    const action = 'character_refresh';
+    fetch(getApiEndpoint(action), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ characterName: characterName })
+        body: getRequestBody(action, null, characterName)
     })
     .then(response => {
         if (!response.ok) {

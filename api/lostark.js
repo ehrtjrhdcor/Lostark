@@ -78,12 +78,14 @@ export default async function handler(req, res) {
 			case 'character': // 캐릭터 검색 (형제 캐릭터 조회)
 			case 'character_siblings':
 				return await handleCharacterSiblings(req, res, characterName);
+			case 'character_refresh': // 캐릭터 강제 갱신
+				return await handleCharacterRefresh(req, res, characterName);
 			case 'character_profile':
 				return await handleCharacterProfile(req, res, characterName);
 			default:
 				return res.status(400).json({
 					success: false,
-					error: '유효하지 않은 액션입니다. 지원되는 액션: test, connect, character, character_siblings, character_profile'
+					error: '유효하지 않은 액션입니다. 지원되는 액션: test, connect, character, character_refresh, character_siblings, character_profile'
 				});
 		}
 	} catch (error) {
@@ -303,8 +305,8 @@ async function handleCharacterSiblings(req, res, characterName) {
 						});
 					}
 
-					// API 제한 방지를 위한 딜레이
-					await new Promise(resolve => setTimeout(resolve, 1000));
+					// API 제한 방지를 위한 딜레이 (단축)
+					await new Promise(resolve => setTimeout(resolve, 200));
 
 				} catch (profileError) {
 					console.error(`❌ ${character.CharacterName} 프로필 오류:`, profileError.message);
@@ -329,6 +331,131 @@ async function handleCharacterSiblings(req, res, characterName) {
 		return res.status(500).json({
 			success: false,
 			error: '형제 캐릭터 조회 중 서버 오류가 발생했습니다.',
+			details: error.message
+		});
+	}
+}
+
+/**
+ * 캐릭터 강제 갱신 (캐시 무시)
+ */
+async function handleCharacterRefresh(req, res, characterName) {
+	if (!characterName) {
+		return res.status(400).json({
+			success: false,
+			error: '캐릭터명이 필요합니다.'
+		});
+	}
+
+	try {
+		console.log(`🔄 ${characterName} 강제 데이터 갱신 시작...`);
+		
+		// Vercel에서는 캐시를 사용하지 않으므로 바로 API 호출
+		const siblingsUrl = `${LOSTARK_API_BASE_URL}/characters/${encodeURIComponent(characterName)}/siblings`;
+		
+		console.log(`🔍 ${characterName} 형제 캐릭터 강제 조회 중...`);
+
+		const apiKey = getRandomApiKey();
+		const siblingsResponse = await fetch(siblingsUrl, {
+			method: 'GET',
+			headers: {
+				'Authorization': `Bearer ${apiKey}`,
+				'Accept': 'application/json'
+			}
+		});
+
+		const siblingsData = await siblingsResponse.json();
+
+		if (!siblingsResponse.ok) {
+			console.error(`❌ ${characterName} 형제 캐릭터 강제 조회 실패:`, siblingsResponse.status, siblingsData);
+			
+			let errorMessage = '캐릭터를 찾을 수 없습니다.';
+			if (siblingsResponse.status === 404) {
+				errorMessage = '존재하지 않는 캐릭터입니다.';
+			} else if (siblingsResponse.status === 429) {
+				errorMessage = 'API 호출 제한에 도달했습니다. 잠시 후 다시 시도해주세요.';
+			} else if (siblingsResponse.status === 401) {
+				errorMessage = 'API 키가 유효하지 않습니다.';
+			}
+
+			return res.status(siblingsResponse.status).json({
+				success: false,
+				error: errorMessage,
+				details: siblingsData
+			});
+		}
+
+		console.log(`✅ ${characterName} 형제 캐릭터 ${siblingsData.length}명 강제 갱신 완료`);
+
+		// 각 캐릭터의 프로필도 함께 조회
+		let profileResults = [];
+		if (Array.isArray(siblingsData) && siblingsData.length > 0) {
+			const charactersToProcess = siblingsData.slice(0, 10); // 최대 10명으로 제한
+			console.log(`=== ${charactersToProcess.length}명의 캐릭터 프로필 강제 갱신 시작 ===`);
+
+			for (const character of charactersToProcess) {
+				try {
+					const profileUrl = `${LOSTARK_API_BASE_URL}/armories/characters/${encodeURIComponent(character.CharacterName)}/profiles`;
+					console.log(`🔄 ${character.CharacterName} 프로필 강제 갱신 중...`);
+
+					const profileApiKey = getRandomApiKey();
+					const profileResponse = await fetch(profileUrl, {
+						method: 'GET',
+						headers: {
+							'Authorization': `Bearer ${profileApiKey}`,
+							'Accept': 'application/json'
+						}
+					});
+
+					const profileData = await profileResponse.json();
+
+					if (profileResponse.ok) {
+						console.log(`✅ ${character.CharacterName} 프로필 강제 갱신 완료`);
+						profileResults.push({
+							character: character.CharacterName,
+							success: true,
+							data: profileData
+						});
+					} else {
+						console.error(`❌ ${character.CharacterName} 프로필 강제 갱신 실패:`, profileResponse.status);
+						profileResults.push({
+							character: character.CharacterName,
+							success: false,
+							error: profileData
+						});
+					}
+
+					// API 제한 방지를 위한 딜레이 (단축)
+					await new Promise(resolve => setTimeout(resolve, 200));
+
+				} catch (profileError) {
+					console.error(`❌ ${character.CharacterName} 프로필 강제 갱신 오류:`, profileError.message);
+					profileResults.push({
+						character: character.CharacterName,
+						success: false,
+						error: profileError.message
+					});
+				}
+			}
+		}
+
+		return res.json({
+			success: true,
+			result: siblingsData,
+			profiles: profileResults,
+			message: `${characterName} 데이터 강제 갱신 완료`,
+			refreshed: {
+				siblings: siblingsData.length,
+				profiles: profileResults.filter(p => p.success).length,
+				totalTime: Date.now() - new Date().getTime()
+			}
+		});
+
+	} catch (error) {
+		console.error('캐릭터 데이터 강제 갱신 실패:', error);
+		return res.status(500).json({
+			success: false,
+			error: '데이터 강제 갱신 중 서버 오류가 발생했습니다.',
 			details: error.message
 		});
 	}
