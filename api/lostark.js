@@ -44,16 +44,25 @@ export default async function handler(req, res) {
 	}
 
 	const { action, characterName } = req.body;
+	console.log('📬 요청 데이터:', { action, characterName });
 
 	// 환경변수에서 API 키 확인
+	console.log('🔍 API 키 확인 중...');
+	console.log('LOSTARK_API_KEYS 환경변수:', process.env.LOSTARK_API_KEYS ? '설정됨' : '설정되지 않음');
+	console.log('파싱된 API_KEYS 개수:', API_KEYS.length);
+	
 	try {
 		if (API_KEYS.length === 0) {
+			console.error('❌ API 키가 설정되지 않았습니다.');
 			return res.status(500).json({
 				success: false,
-				error: 'API 키가 서버에 설정되지 않았습니다.'
+				error: 'API 키가 서버에 설정되지 않았습니다.',
+				details: 'LOSTARK_API_KEYS 환경변수를 확인해주세요.'
 			});
 		}
+		console.log('✅ API 키 확인 완료');
 	} catch (error) {
+		console.error('❌ API 키 설정 오류:', error);
 		return res.status(500).json({
 			success: false,
 			error: 'API 키 설정 오류: ' + error.message
@@ -66,6 +75,7 @@ export default async function handler(req, res) {
 				return await handleApiTest(req, res);
 			case 'connect':
 				return await handleApiConnect(req, res);
+			case 'character': // 캐릭터 검색 (형제 캐릭터 조회)
 			case 'character_siblings':
 				return await handleCharacterSiblings(req, res, characterName);
 			case 'character_profile':
@@ -73,7 +83,7 @@ export default async function handler(req, res) {
 			default:
 				return res.status(400).json({
 					success: false,
-					error: '유효하지 않은 액션입니다.'
+					error: '유효하지 않은 액션입니다. 지원되는 액션: test, connect, character, character_siblings, character_profile'
 				});
 		}
 	} catch (error) {
