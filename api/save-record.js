@@ -4,10 +4,19 @@
  */
 
 const mysql = require('mysql2/promise');
-const { nanoid } = require('nanoid');
 const cloudinary = require('cloudinary').v2;
 const formidable = require('formidable');
 const fs = require('fs').promises;
+
+// nanoid 대신 간단한 ID 생성 함수 사용
+function generateId(length = 10) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
 
 /**
  * Cloudinary 설정
@@ -93,35 +102,49 @@ async function uploadToCloudinary(filePath, options = {}) {
  */
 function parseMultipartForm(req) {
     return new Promise((resolve, reject) => {
-        const form = formidable({
-            maxFileSize: 10 * 1024 * 1024, // 10MB
-            allowEmptyFiles: false,
-            minFileSize: 1
-        });
-
-        form.parse(req, (err, fields, files) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-
-            // fields와 files 정규화
-            const normalizedFields = {};
-            const normalizedFiles = {};
-
-            for (const [key, value] of Object.entries(fields)) {
-                normalizedFields[key] = Array.isArray(value) ? value[0] : value;
-            }
-
-            for (const [key, value] of Object.entries(files)) {
-                normalizedFiles[key] = Array.isArray(value) ? value[0] : value;
-            }
-
-            resolve({
-                fields: normalizedFields,
-                files: normalizedFiles
+        try {
+            const form = formidable({
+                maxFileSize: 10 * 1024 * 1024, // 10MB
+                allowEmptyFiles: false,
+                minFileSize: 1,
+                keepExtensions: true,
+                uploadDir: '/tmp' // Vercel의 /tmp 디렉토리 사용
             });
-        });
+
+            form.parse(req, (err, fields, files) => {
+                if (err) {
+                    console.error('Formidable 파싱 오류:', err);
+                    reject(err);
+                    return;
+                }
+
+                console.log('파싱된 필드 원본:', fields);
+                console.log('파싱된 파일 원본:', files);
+
+                // fields와 files 정규화
+                const normalizedFields = {};
+                const normalizedFiles = {};
+
+                for (const [key, value] of Object.entries(fields || {})) {
+                    normalizedFields[key] = Array.isArray(value) ? value[0] : value;
+                }
+
+                for (const [key, value] of Object.entries(files || {})) {
+                    normalizedFiles[key] = Array.isArray(value) ? value[0] : value;
+                }
+
+                console.log('정규화된 필드:', normalizedFields);
+                console.log('정규화된 파일:', normalizedFiles);
+
+                resolve({
+                    fields: normalizedFields,
+                    files: normalizedFiles
+                });
+            });
+        } catch (initError) {
+            console.error('Formidable 초기화 오류:', initError);
+            reject(initError);
+        }
     });
 }
 
@@ -152,10 +175,37 @@ export default async function handler(req, res) {
     try {
         console.log('📊 OCR 기록 저장 요청 수신...');
 
+        // 환경변수 체크
+        console.log('🔍 환경변수 체크 중...');
+        if (!process.env.DATABASE_URL) {
+            console.error('❌ DATABASE_URL 환경변수가 설정되지 않았습니다.');
+            return res.status(500).json({
+                success: false,
+                error: 'Database configuration error',
+                details: 'DATABASE_URL 환경변수가 설정되지 않았습니다.'
+            });
+        }
+
+        const cloudinaryMissing = [];
+        if (!process.env.CLOUDINARY_CLOUD_NAME) cloudinaryMissing.push('CLOUDINARY_CLOUD_NAME');
+        if (!process.env.CLOUDINARY_API_KEY) cloudinaryMissing.push('CLOUDINARY_API_KEY');
+        if (!process.env.CLOUDINARY_API_SECRET) cloudinaryMissing.push('CLOUDINARY_API_SECRET');
+
+        if (cloudinaryMissing.length > 0) {
+            console.error('❌ Cloudinary 환경변수가 설정되지 않았습니다:', cloudinaryMissing);
+            return res.status(500).json({
+                success: false,
+                error: 'Cloudinary configuration error',
+                details: `다음 환경변수가 필요합니다: ${cloudinaryMissing.join(', ')}`
+            });
+        }
+        console.log('✅ 환경변수 확인 완료');
+
         // Multipart form data 파싱
+        console.log('📋 요청 파싱 시작...');
         const { fields, files } = await parseMultipartForm(req);
-        console.log('파싱된 필드:', Object.keys(fields));
-        console.log('업로드된 파일:', Object.keys(files));
+        console.log('파싱된 필드:', Object.keys(fields || {}));
+        console.log('업로드된 파일:', Object.keys(files || {}));
 
         // 필수 필드 추출
         const {
@@ -194,7 +244,7 @@ export default async function handler(req, res) {
                 console.log(`📤 Cloudinary 업로드 시작: ${files.image.originalFilename}`);
                 
                 const uploadResult = await uploadToCloudinary(files.image.filepath, {
-                    public_id: `lostark-ocr/${nanoid(10)}`,
+                    public_id: `lostark-ocr/${generateId(10)}`,
                     folder: 'lostark-ocr',
                     tags: [characterName, raidName, difficulty].filter(Boolean)
                 });
@@ -231,7 +281,7 @@ export default async function handler(req, res) {
 
         try {
             // 1. 메인 레코드 저장
-            const recordId = nanoid(10);
+            const recordId = generateId(10);
             const insertRecordQuery = `
                 INSERT INTO ocr_records (
                     id, character_name, character_class, raid_name, 
@@ -266,7 +316,7 @@ export default async function handler(req, res) {
 
                 for (const [statName, statValue] of Object.entries(parsedOcrData)) {
                     if (statValue !== null && statValue !== undefined && statValue !== '') {
-                        const statId = nanoid(10);
+                        const statId = generateId(10);
                         
                         // 스탯 카테고리 분류
                         let category = 'general';
