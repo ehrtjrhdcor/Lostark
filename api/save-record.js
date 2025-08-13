@@ -5,7 +5,7 @@
 
 const mysql = require('mysql2/promise');
 const cloudinary = require('cloudinary').v2;
-const formidable = require('formidable');
+const { IncomingForm } = require('formidable');
 const fs = require('fs').promises;
 
 // nanoid 대신 간단한 ID 생성 함수 사용
@@ -103,7 +103,7 @@ async function uploadToCloudinary(filePath, options = {}) {
 function parseMultipartForm(req) {
     return new Promise((resolve, reject) => {
         try {
-            const form = formidable({
+            const form = new IncomingForm({
                 maxFileSize: 10 * 1024 * 1024, // 10MB
                 allowEmptyFiles: false,
                 minFileSize: 1,
