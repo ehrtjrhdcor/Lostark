@@ -990,7 +990,7 @@ function collectTableData() {
     return data;
 }
 
-// 저장 모달 표시 함수
+// 저장 모달 표시 함수 (바로 저장으로 변경)
 function showSaveModal() {
     const data = collectTableData();
     const dataCount = Object.keys(data).length;
@@ -1000,195 +1000,80 @@ function showSaveModal() {
         return;
     }
 
-    // 기존 저장 모달 제거
-    const existingModal = document.getElementById('saveRecordModal');
-    if (existingModal) {
-        existingModal.remove();
+    // 저장된 캐릭터 선택 정보 확인
+    const characterName = selectedCharacterInfo.characterName || '';
+    const characterClass = selectedCharacterInfo.characterClass || '';
+    const raidName = selectedCharacterInfo.raidName || '';
+    const gateNumber = selectedCharacterInfo.gateNumber || '';
+    const difficulty = selectedCharacterInfo.difficulty || '';
+
+    // 필수 정보가 있는지 확인
+    if (!characterName || !raidName) {
+        alert('캐릭터명과 레이드명이 필요합니다.\n\n캐릭터를 선택하고 레이드 분석 모달을 통해 진입해주세요.');
+        return;
     }
 
-    // 저장 모달 생성
-    const modal = document.createElement('div');
-    modal.id = 'saveRecordModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    `;
+    // 확인 메시지
+    const confirmMessage = `다음 정보로 기록을 저장하시겠습니까?\n\n` +
+        `캐릭터: ${characterName} (${characterClass || '미선택'})\n` +
+        `레이드: ${raidName} ${gateNumber ? gateNumber + '관문' : ''} ${difficulty || ''}\n` +
+        `데이터: ${dataCount}개 항목`;
 
-    modal.innerHTML = `
-        <div style="
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        ">
-            <h3 style="margin: 0 0 20px 0; color: #333; text-align: center;">📊 기록 저장</h3>
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">캐릭터명</label>
-                <input type="text" id="saveCharacterName" placeholder="캐릭터명을 입력하세요" style="
-                    width: 100%;
-                    padding: 10px;
-                    border: 2px solid #ddd;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    box-sizing: border-box;
-                " />
-            </div>
+    if (!confirm(confirmMessage)) {
+        return;
+    }
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">직업</label>
-                <select id="saveCharacterClass" style="
-                    width: 100%;
-                    padding: 10px;
-                    border: 2px solid #ddd;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    box-sizing: border-box;
-                ">
-                    <option value="">직업 선택</option>
-                    <option value="버서커">버서커</option>
-                    <option value="디스트로이어">디스트로이어</option>
-                    <option value="워로드">워로드</option>
-                    <option value="홀리나이트">홀리나이트</option>
-                    <option value="슬레이어">슬레이어</option>
-                    <option value="아르카나">아르카나</option>
-                    <option value="서머너">서머너</option>
-                    <option value="바드">바드</option>
-                    <option value="소서리스">소서리스</option>
-                    <option value="데빌헌터">데빌헌터</option>
-                    <option value="블래스터">블래스터</option>
-                    <option value="호크아이">호크아이</option>
-                    <option value="스카우터">스카우터</option>
-                    <option value="건슬링어">건슬링어</option>
-                    <option value="인파이터">인파이터</option>
-                    <option value="스트라이커">스트라이커</option>
-                    <option value="배틀마스터">배틀마스터</option>
-                    <option value="창술사">창술사</option>
-                    <option value="데모닉">데모닉</option>
-                    <option value="리퍼">리퍼</option>
-                    <option value="소울이터">소울이터</option>
-                    <option value="도화가">도화가</option>
-                    <option value="기공사">기공사</option>
-                    <option value="브레이커">브레이커</option>
-                    <option value="웨더아티스트">웨더아티스트</option>
-                    <option value="기상술사">기상술사</option>
-                </select>
-            </div>
+    // 바로 저장 실행
+    saveRecordDirect(characterName, characterClass, raidName, gateNumber, difficulty, data);
+}
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">레이드</label>
-                <input type="text" id="saveRaidName" placeholder="예: 카양겔, 상아탑, 에키드나" style="
-                    width: 100%;
-                    padding: 10px;
-                    border: 2px solid #ddd;
-                    border-radius: 6px;
-                    font-size: 14px;
-                    box-sizing: border-box;
-                " />
-            </div>
+// 바로 저장 실행 함수
+async function saveRecordDirect(characterName, characterClass, raidName, gateNumber, difficulty, ocrData) {
+    try {
+        console.log('=== 바로 저장 실행 ===');
+        console.log('캐릭터:', characterName, '직업:', characterClass);
+        console.log('레이드:', raidName, '관문:', gateNumber, '난이도:', difficulty);
+        console.log('OCR 데이터:', ocrData);
+        console.log('이미지 파일:', getCurrentImageFile());
+        console.log('==================');
 
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">관문</label>
-                    <select id="saveGateNumber" style="
-                        width: 100%;
-                        padding: 10px;
-                        border: 2px solid #ddd;
-                        border-radius: 6px;
-                        font-size: 14px;
-                    ">
-                        <option value="">관문 선택</option>
-                        <option value="1">1관문</option>
-                        <option value="2">2관문</option>
-                        <option value="3">3관문</option>
-                        <option value="4">4관문</option>
-                    </select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">난이도</label>
-                    <select id="saveDifficulty" style="
-                        width: 100%;
-                        padding: 10px;
-                        border: 2px solid #ddd;
-                        border-radius: 6px;
-                        font-size: 14px;
-                    ">
-                        <option value="">난이도 선택</option>
-                        <option value="노말">노말</option>
-                        <option value="하드">하드</option>
-                        <option value="헬">헬</option>
-                        <option value="인페르노">인페르노</option>
-                        <option value="익스트림">익스트림</option>
-                    </select>
-                </div>
-            </div>
-
-            <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: center;">
-                <button onclick="closeSaveModal()" style="
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                ">취소</button>
-                <button onclick="saveRecord()" style="
-                    background: #28a745;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                ">💾 저장하기</button>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // 저장된 캐릭터 선택 정보로 필드 자동 입력
-    setTimeout(() => {
-        if (selectedCharacterInfo.characterName) {
-            document.getElementById('saveCharacterName').value = selectedCharacterInfo.characterName;
-        }
-        if (selectedCharacterInfo.characterClass) {
-            document.getElementById('saveCharacterClass').value = selectedCharacterInfo.characterClass;
-        }
-        if (selectedCharacterInfo.raidName) {
-            document.getElementById('saveRaidName').value = selectedCharacterInfo.raidName;
-        }
-        if (selectedCharacterInfo.gateNumber) {
-            // 카멘의 경우 0관문을 전체로 표시했으므로 처리
-            const gateValue = selectedCharacterInfo.gateNumber === '0' ? '' : selectedCharacterInfo.gateNumber;
-            document.getElementById('saveGateNumber').value = gateValue;
-        }
-        if (selectedCharacterInfo.difficulty) {
-            document.getElementById('saveDifficulty').value = selectedCharacterInfo.difficulty;
+        // FormData로 전송 준비
+        const formData = new FormData();
+        formData.append('characterName', characterName);
+        formData.append('characterClass', characterClass || '');
+        formData.append('raidName', raidName);
+        formData.append('gateNumber', gateNumber || '');
+        formData.append('difficulty', difficulty || '');
+        formData.append('combatTime', ocrData['전투 시간'] || '');
+        formData.append('ocrData', JSON.stringify(ocrData));
+        
+        // 이미지 파일 추가
+        const imageFile = getCurrentImageFile();
+        if (imageFile) {
+            formData.append('image', imageFile);
         }
 
-        // 첫 번째 입력 필드에 포커스 (캐릭터명이 이미 채워져 있으면 다음 필드로)
-        const characterNameField = document.getElementById('saveCharacterName');
-        if (characterNameField.value) {
-            // 캐릭터명이 있으면 저장 버튼에 포커스
-            document.querySelector('button[onclick="saveRecord()"]').focus();
+        // API 호출
+        const response = await fetch('/api/save-record', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ 기록이 저장되었습니다!\n\n' + 
+                  `캐릭터: ${characterName} (${characterClass || '미선택'})\n` +
+                  `레이드: ${raidName} ${gateNumber ? gateNumber + '관문' : ''} ${difficulty || ''}\n` +
+                  `데이터: ${Object.keys(ocrData).length}개 항목\n` +
+                  `레코드 ID: ${result.data.recordId}`);
         } else {
-            characterNameField.focus();
+            throw new Error(result.error || '저장에 실패했습니다.');
         }
-    }, 100);
+    } catch (error) {
+        console.error('저장 중 오류:', error);
+        alert('❌ 저장 중 오류가 발생했습니다.\n' + error.message);
+    }
 }
 
 // 저장 모달 닫기
