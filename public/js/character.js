@@ -3,10 +3,31 @@
 
 // 캐릭터 이미지 표시 함수 (features 페이지용)
 function displayCharacterImages(profiles) {
+    console.log('=== displayCharacterImages 호출됨 ===');
+    console.log('profiles:', profiles);
+    console.log('profiles 길이:', profiles ? profiles.length : 'undefined');
+    
     const apiResult = document.getElementById('apiResult');
+    if (!apiResult) {
+        console.error('apiResult 요소를 찾을 수 없습니다');
+        return;
+    }
+    
+    // profiles가 비어있거나 없는 경우 처리
+    if (!profiles || profiles.length === 0) {
+        console.log('프로필 데이터가 비어있습니다');
+        const errorHtml = '<div style="margin-top: 30px; text-align: center; color: #e74c3c;"><h3>⚠️ 캐릭터 정보 없음</h3><p>캐릭터 데이터를 찾을 수 없습니다.</p></div>';
+        apiResult.innerHTML += errorHtml;
+        return;
+    }
+
     let imageHtml = '<div style="margin-top: 30px;"><h3>🎮 캐릭터 선택</h3><div id="characterCards" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">';
 
     profiles.forEach((profile, index) => {
+        console.log(`프로필 ${index}:`, profile);
+        console.log(`프로필 ${index} success:`, profile.success);
+        console.log(`프로필 ${index} data:`, profile.data);
+        
         if (profile.success && profile.data && profile.data.CharacterImage) {
             imageHtml += `
                 <div class="character-card" data-character="${profile.character}" data-class="${profile.data.CharacterClassName || ''}" data-index="${index}" 
@@ -82,7 +103,12 @@ function displayCharacterImages(profiles) {
 
     // 기존 API 결과에 캐릭터 이미지 추가
     const currentContent = apiResult.innerHTML;
+    console.log('현재 apiResult 내용:', currentContent);
+    console.log('추가할 imageHtml:', imageHtml);
+    
     apiResult.innerHTML = currentContent + imageHtml;
+    
+    console.log('업데이트 후 apiResult 내용:', apiResult.innerHTML);
 
     // 캐릭터 카드 클릭 이벤트 추가
     addCharacterCardEvents();
