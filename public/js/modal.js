@@ -963,6 +963,8 @@ function collectTableData() {
     const tbody = table.querySelector('tbody');
     const rows = tbody.querySelectorAll('tr');
     const data = {};
+    
+    console.log('🔍 collectTableData: 테이블 행 개수:', rows.length);
 
     rows.forEach((row, index) => {
         const keyInput = row.querySelector('.key-input');
@@ -971,6 +973,8 @@ function collectTableData() {
         if (keyInput && valueInput) {
             const key = keyInput.value.trim();
             const value = valueInput.value.trim();
+            
+            console.log(`🔍 행 ${index}: 키="${key}", 값="${value}"`);
 
             // 빈 항목은 제외 (키와 값 모두 비어있는 경우)
             if (key || value) {
@@ -983,10 +987,15 @@ function collectTableData() {
                 }
 
                 data[finalKey] = value || '';
+                console.log(`✅ 데이터 추가: "${finalKey}" = "${value}"`);
+            } else {
+                console.log(`⏭️ 행 ${index} 스킵: 키와 값이 모두 비어있음`);
             }
         }
     });
 
+    console.log('🎯 최종 수집된 데이터:', data);
+    console.log('🎯 수집된 데이터 키 개수:', Object.keys(data).length);
     return data;
 }
 

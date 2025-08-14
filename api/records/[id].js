@@ -129,13 +129,26 @@ async function getRecordById(connection, res, recordId) {
 
         // raw_ocr_data 파싱
         let parsedOcrData = {};
+        console.log('🔍 raw_ocr_data 확인:', record.raw_ocr_data);
+        console.log('🔍 raw_ocr_data 타입:', typeof record.raw_ocr_data);
+        console.log('🔍 raw_ocr_data 길이:', record.raw_ocr_data ? record.raw_ocr_data.length : 'null');
+        
         if (record.raw_ocr_data) {
             try {
-                parsedOcrData = JSON.parse(record.raw_ocr_data);
+                // MySQL의 JSON 타입은 이미 객체로 반환될 수 있음
+                if (typeof record.raw_ocr_data === 'string') {
+                    parsedOcrData = JSON.parse(record.raw_ocr_data);
+                } else if (typeof record.raw_ocr_data === 'object') {
+                    parsedOcrData = record.raw_ocr_data;
+                }
+                console.log('✅ OCR 데이터 파싱 성공:', parsedOcrData);
             } catch (parseError) {
-                console.error('OCR 데이터 파싱 오류:', parseError);
+                console.error('❌ OCR 데이터 파싱 오류:', parseError);
+                console.error('파싱 실패한 데이터:', record.raw_ocr_data);
                 parsedOcrData = {};
             }
+        } else {
+            console.log('⚠️ raw_ocr_data가 비어있습니다');
         }
 
         console.log(`✅ 기록 상세 조회 완료: ${record.character_name} - ${record.raid_name}`);

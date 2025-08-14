@@ -232,10 +232,17 @@ export default async function handler(req, res) {
 
         // OCR 데이터 파싱
         let parsedOcrData = {};
+        console.log('🔍 원본 ocrData:', ocrData);
+        console.log('🔍 ocrData 타입:', typeof ocrData);
+        console.log('🔍 ocrData 내용:', JSON.stringify(ocrData));
+        
         try {
             parsedOcrData = typeof ocrData === 'string' ? JSON.parse(ocrData) : (ocrData || {});
+            console.log('✅ 파싱된 OCR 데이터:', parsedOcrData);
+            console.log('✅ 파싱된 OCR 데이터 키 개수:', Object.keys(parsedOcrData).length);
         } catch (parseError) {
-            console.error('OCR 데이터 파싱 오류:', parseError);
+            console.error('❌ OCR 데이터 파싱 오류:', parseError);
+            console.error('파싱 실패한 원본 데이터:', ocrData);
             parsedOcrData = {};
         }
 
@@ -307,6 +314,10 @@ export default async function handler(req, res) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             `;
 
+            const ocrDataToSave = JSON.stringify(parsedOcrData);
+            console.log('💾 데이터베이스에 저장할 OCR 데이터:', ocrDataToSave);
+            console.log('💾 저장할 OCR 데이터 길이:', ocrDataToSave.length);
+            
             await executeQuery(connection, insertRecordQuery, [
                 recordId,
                 characterName,
@@ -317,7 +328,7 @@ export default async function handler(req, res) {
                 combatTime || null,
                 imagePath,
                 imagePublicId,
-                JSON.stringify(parsedOcrData)
+                ocrDataToSave
             ]);
 
             console.log(`✅ 메인 레코드 저장 완료: ${recordId}`);
