@@ -170,8 +170,18 @@ function refreshCharacterData(characterName) {
         .then((data) => {
             console.log(data);
             if(data.success){
-            // 강제 갱신 성공 후 캐릭터 목록 표시
-                displayCharacterImages(data.profiles || []);
+                // 강제 갱신 성공 후 캐릭터 목록 표시
+                // 실제 API 응답 구조에 맞게 수정
+                let profilesData = [];
+                
+                if (data.data && data.data.profiles) {
+                    profilesData = data.data.profiles;
+                } else if (data.profiles) {
+                    profilesData = data.profiles;
+                }
+                
+                console.log('최종 전달할 profiles:', profilesData);
+                displayCharacterImages(profilesData);
 
                 // 성공 메시지 표시
                 const apiResult = document.getElementById("apiResult");

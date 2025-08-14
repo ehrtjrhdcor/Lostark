@@ -509,7 +509,8 @@ function viewRecordImage(imagePath) {
     `;
 
     const img = document.createElement('img');
-    img.src = `/${imagePath}`;
+    // Cloudinary URL인 경우 https://로 시작하므로 그대로 사용, 아니면 / 추가
+    img.src = imagePath.startsWith('https://') ? imagePath : `/${imagePath}`;
     img.style.cssText = `
         max-width: 90%;
         max-height: 90%;
@@ -637,7 +638,7 @@ function displayRecordDetailModal(data) {
                 <div style="margin-bottom: 25px;">
                     <h3 style="color: #495057; margin-bottom: 15px; border-bottom: 1px solid #dee2e6; padding-bottom: 8px;">🖼️ 분석 이미지</h3>
                     <div style="text-align: center; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                        <img src="/${record.image_url}" alt="OCR 분석 이미지" style="
+                        <img src="${record.image_url.startsWith('https://') ? record.image_url : '/' + record.image_url}" alt="OCR 분석 이미지" style="
                             max-width: 100%;
                             max-height: 300px;
                             border-radius: 8px;
