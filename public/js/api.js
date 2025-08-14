@@ -113,28 +113,30 @@ function testLostArkAPI(apiKey, characterName) {
             return response.json();
         })
         .then((data) => {
-            console.log(data);
+            console.log('=== API 응답 전체 ===', data);
             if (data.success) {
                 // API 연결 성공 후 캐릭터 목록 표시
-                if (data.siblings && data.siblings.length > 0) {
-                    console.log('전달할 profiles 데이터:', data.profiles);
-                    console.log('data.data:', data.data);
-                    console.log('data.data && data.data.profiles:', data.data && data.data.profiles);
-                    
-                    // profiles 데이터 위치 확인
-                    const profilesData = data.profiles || (data.data && data.data.profiles) || [];
-                    console.log('최종 profiles 데이터:', profilesData);
-                    
-                    displayCharacterImages(profilesData);
-                    // 캐릭터 카드 표시 후 로딩 제거
-                    const apiResult = document.getElementById("apiResult");
-                    const loadingDiv = apiResult.querySelector(".loading");
-                    if (loadingDiv) {
-                        loadingDiv.remove();
-                    }
-                } else {
-                    showApiError("형제 캐릭터를 찾을 수 없습니다.");
+                console.log('data.profiles 확인:', data.profiles);
+                console.log('data.data 확인:', data.data);
+                
+                // 실제 API 응답 구조에 맞게 수정
+                let profilesData = [];
+                
+                if (data.data && data.data.profiles) {
+                    profilesData = data.data.profiles;
+                } else if (data.profiles) {
+                    profilesData = data.profiles;
                 }
+                
+                console.log('최종 전달할 profiles:', profilesData);
+                displayCharacterImages(profilesData);
+                // 캐릭터 카드 표시 후 로딩 제거
+                const apiResult = document.getElementById("apiResult");
+                const loadingDiv = apiResult.querySelector(".loading");
+                if (loadingDiv) {
+                    loadingDiv.remove();
+                }
+            
             } else {
                 showApiError(data.error || "API 연결에 실패했습니다.");
             }
