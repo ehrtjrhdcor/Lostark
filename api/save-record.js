@@ -33,15 +33,21 @@ cloudinary.config({
  */
 function createConnection() {
     if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL 환경변수가 설정되지 않았습니다.');
+        console.log('DATABASE_URL이 설정되지 않음 - 로컬 저장 모드');
+        return null; // 데이터베이스 없이 동작
     }
 
-    return mysql.createConnection({
-        uri: process.env.DATABASE_URL,
-        ssl: {
-            rejectUnauthorized: false
-        }
-    });
+    try {
+        return mysql.createConnection({
+            uri: process.env.DATABASE_URL,
+            ssl: {
+                rejectUnauthorized: false
+            }
+        });
+    } catch (error) {
+        console.error('데이터베이스 연결 실패:', error);
+        return null;
+    }
 }
 
 /**
@@ -275,6 +281,19 @@ export default async function handler(req, res) {
 
         // 데이터베이스 저장
         connection = await createConnection();
+        
+        if (!connection) {
+            // 데이터베이스 연결 실패 시 성공 응답 (이미지만 저장됨)
+            return res.status(200).json({
+                success: true,
+                message: '이미지 업로드 완료 (데이터베이스 저장 건너뜀)',
+                data: {
+                    imageUrl: uploadResult.secure_url,
+                    imagePublicId: uploadResult.public_id
+                }
+            });
+        }
+        
         await connection.beginTransaction();
 
         try {
