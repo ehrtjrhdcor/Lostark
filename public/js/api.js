@@ -117,7 +117,15 @@ function testLostArkAPI(apiKey, characterName) {
             if (data.success) {
                 // API 연결 성공 후 캐릭터 목록 표시
                 if (data.siblings && data.siblings.length > 0) {
-                    displayCharacterImages(data.profiles || []);
+                    console.log('전달할 profiles 데이터:', data.profiles);
+                    console.log('data.data:', data.data);
+                    console.log('data.data && data.data.profiles:', data.data && data.data.profiles);
+                    
+                    // profiles 데이터 위치 확인
+                    const profilesData = data.profiles || (data.data && data.data.profiles) || [];
+                    console.log('최종 profiles 데이터:', profilesData);
+                    
+                    displayCharacterImages(profilesData);
                     // 캐릭터 카드 표시 후 로딩 제거
                     const apiResult = document.getElementById("apiResult");
                     const loadingDiv = apiResult.querySelector(".loading");
