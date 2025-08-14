@@ -116,7 +116,7 @@ function testLostArkAPI(apiKey, characterName) {
       console.log(data);
       if (data.success) {
         // API 연결 성공 후 캐릭터 목록 표시
-        if (data.result && data.result.length > 0) {
+        if (data.siblings && data.siblings.length > 0) {
           displayCharacterImages(data.profiles || []);
           // 캐릭터 카드 표시 후 로딩 제거
           const apiResult = document.getElementById("apiResult");
@@ -162,7 +162,7 @@ function refreshCharacterData(characterName) {
       console.log(data);
       if (data.success) {
         // 강제 갱신 성공 후 캐릭터 목록 표시
-        if (data.result && data.result.length > 0) {
+        if (data.siblings && data.siblings.length > 0) {
           displayCharacterImages(data.profiles || []);
 
           // 성공 메시지 표시
