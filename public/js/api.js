@@ -160,41 +160,37 @@ function refreshCharacterData(characterName) {
     })
     .then((data) => {
       console.log(data);
-      if (data.success) {
-        // 강제 갱신 성공 후 캐릭터 목록 표시
-        if (data.siblings && data.siblings.length > 0) {
-          displayCharacterImages(data.profiles || []);
+      if(data.success){
+      // 강제 갱신 성공 후 캐릭터 목록 표시
+        displayCharacterImages(data.profiles || []);
 
-          // 성공 메시지 표시
-          const apiResult = document.getElementById("apiResult");
-          const successMessage = document.createElement("div");
-          successMessage.className = "success-message";
-          successMessage.style.cssText =
-            "background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;";
-          successMessage.innerHTML = `
+        // 성공 메시지 표시
+        const apiResult = document.getElementById("apiResult");
+        const successMessage = document.createElement("div");
+        successMessage.className = "success-message";
+        successMessage.style.cssText =
+          "background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #c3e6cb;";
+        successMessage.innerHTML = `
                     <strong>✅ 데이터 갱신 완료!</strong><br>
                     형제 캐릭터: ${data.refreshed.siblings}명<br>
                     프로필 갱신: ${data.refreshed.profiles}명<br>
                     소요시간: ${data.refreshed.totalTime}ms
                 `;
 
-          // 로딩 제거 후 성공 메시지 추가
-          const loadingDiv = apiResult.querySelector(".loading");
-          if (loadingDiv) {
-            loadingDiv.replaceWith(successMessage);
-          } else {
-            apiResult.insertBefore(successMessage, apiResult.firstChild);
-          }
-
-          // 3초 후 성공 메시지 제거
-          setTimeout(() => {
-            if (successMessage.parentNode) {
-              successMessage.remove();
-            }
-          }, 3000);
+        // 로딩 제거 후 성공 메시지 추가
+        const loadingDiv = apiResult.querySelector(".loading");
+        if (loadingDiv) {
+          loadingDiv.replaceWith(successMessage);
         } else {
-          showApiError("형제 캐릭터를 찾을 수 없습니다.");
+          apiResult.insertBefore(successMessage, apiResult.firstChild);
         }
+
+        // 3초 후 성공 메시지 제거
+        setTimeout(() => {
+          if (successMessage.parentNode) {
+            successMessage.remove();
+          }
+        }, 3000);
       } else {
         showApiError(data.error || "데이터 갱신에 실패했습니다.");
       }
